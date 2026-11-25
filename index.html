@@ -1,0 +1,3290 @@
+# تطوير لعبة Aures Bullet الرقمية
+
+---
+
+ ## AI Studio
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aures Bullet: Secret of the Traitor and the Colonizer | تامر Tteam</title>
+  <style>
+    :root {
+      --bg-wood: #1c120c;
+      --bg-wood-mid: #2c1c13;
+      --bg-parchment: #f3e5c3;
+      --bg-parchment-dark: #dfca99;
+      --ink: #1e1610;
+      --ink-muted: #5a4632;
+      --gold: #d4a64a;
+      --gold-bright: #f2cb72;
+      --crimson: #8f1d1d;
+      --crimson-bright: #b82929;
+      --olive: #354b2e;
+      --olive-light: #4b6940;
+      --teal: #1f4e5b;
+      --border-vintage: #7a5c38;
+      --shadow-heavy: 0 14px 36px rgba(0, 0, 0, 0.72);
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    input, textarea, select {
+      user-select: text;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 25%, #342116 0%, #190f0a 65%, #0e0805 100%);
+      color: var(--bg-parchment);
+      font-family: "Tajawal", "Cairo", "Amiri", "Segoe UI", Tahoma, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Decorative layers MUST NEVER block clicks */
+    .bg-fx, .fog-layer, .vignette, .paper-grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none !important;
+      z-index: 0;
+    }
+
+    .vignette {
+      background: radial-gradient(circle at center, transparent 48%, rgba(0, 0, 0, 0.72) 100%);
+    }
+
+    .fog-layer {
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(212, 166, 74, 0.08), transparent 45%),
+        radial-gradient(ellipse at 80% 75%, rgba(143, 29, 29, 0.10), transparent 50%);
+      filter: blur(24px);
+      animation: fogDrift 16s ease-in-out infinite alternate;
+    }
+
+    .paper-grain {
+      opacity: 0.06;
+      background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255, 240, 200, 0.15) 0px,
+        rgba(255, 240, 200, 0.15) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+    }
+
+    @keyframes fogDrift {
+      0% { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+      100% { transform: translate3d(1.5%, 1.5%, 0) scale(1.05); }
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes pulseGold {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212, 166, 74, 0.45); }
+      50% { box-shadow: 0 0 18px 3px rgba(212, 166, 74, 0.35); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Top Voice Chat Bar */
+    #voice-chat-bar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(180deg, rgba(22, 14, 9, 0.96), rgba(34, 21, 14, 0.92));
+      border-bottom: 2px solid var(--border-vintage);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+    }
+
+    .voice-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: var(--gold-bright);
+    }
+
+    .voice-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4caf50;
+      box-shadow: 0 0 8px #4caf50;
+    }
+
+    .voice-dot.off {
+      background: #b71c1c;
+      box-shadow: none;
+    }
+
+    .voice-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Responsive Ad Banner - non-blocking */
+    #ad-banner-wrap {
+      position: relative;
+      z-index: 35;
+      max-width: 960px;
+      margin: 8px auto 0;
+      padding: 6px 14px;
+      background: linear-gradient(90deg, rgba(45, 30, 19, 0.94), rgba(28, 18, 12, 0.94));
+      border: 1px dashed var(--gold);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.84rem;
+    }
+
+    #ad-banner-wrap.hidden-ad {
+      display: none !important;
+      pointer-events: none !important;
+    }
+
+    /* Buttons */
+    button, .btn {
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+      border-radius: 10px;
+      border: 1.5px solid var(--gold);
+      background: linear-gradient(180deg, #4b311e 0%, #2c1b10 100%);
+      color: var(--bg-parchment);
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    }
+
+    button:hover, .btn:hover {
+      transform: translateY(-2px);
+      background: linear-gradient(180deg, #5f3e26 0%, #3a2416 100%);
+      box-shadow: 0 6px 18px rgba(212, 166, 74, 0.25);
+    }
+
+    button:active, .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #9d2424 0%, #681313 100%);
+      border-color: var(--gold-bright);
+      color: #fff6df;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(180deg, #b82c2c 0%, #7c1818 100%);
+    }
+
+    .btn-olive {
+      background: linear-gradient(180deg, #45623c 0%, #2b3f24 100%);
+      border-color: #a4c38f;
+    }
+
+    .btn-gold {
+      background: linear-gradient(180deg, #d7a645 0%, #9b7021 100%);
+      color: #1c120a;
+      border-color: #ffe39c;
+    }
+
+    .btn-sm {
+      padding: 6px 11px;
+      font-size: 0.82rem;
+      border-radius: 8px;
+    }
+
+    .btn-close-x {
+      background: #6b1515;
+      color: #fff;
+      border: 1px solid #f2cb72;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* Screens - Strict visibility & pointer-events */
+    .app-container {
+      position: relative;
+      z-index: 5;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 12px 14px 30px;
+    }
+
+    .screen {
+      display: none !important;
+      pointer-events: none !important;
+      flex-direction: column;
+      gap: 16px;
+      animation: slideUp 0.28s ease;
+    }
+
+    .screen.active {
+      display: flex !important;
+      pointer-events: auto !important;
+    }
+
+    /* Vintage Panel */
+    .vintage-panel {
+      background: linear-gradient(160deg, rgba(46, 30, 20, 0.95), rgba(26, 16, 10, 0.96));
+      border: 2px solid var(--border-vintage);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow-heavy), inset 0 0 28px rgba(0, 0, 0, 0.55);
+    }
+
+    .parchment-box {
+      background: linear-gradient(145deg, var(--bg-parchment) 0%, var(--bg-parchment-dark) 100%);
+      color: var(--ink);
+      border: 2px solid #8a6b42;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), inset 0 0 24px rgba(139, 98, 43, 0.22);
+    }
+
+    /* Main Menu */
+    #screen-home {
+      align-items: center;
+      text-align: center;
+    }
+
+    #game-logo {
+      max-width: 680px;
+      width: 100%;
+      margin: 4px auto 6px;
+      padding: 14px;
+      border-radius: 18px;
+      background: radial-gradient(circle at center, rgba(60, 39, 24, 0.9), rgba(25, 16, 10, 0.92));
+      border: 2px solid var(--gold);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.7);
+      animation: floatSlow 5s ease-in-out infinite;
+    }
+
+    .logo-images-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .custom-logo-img {
+      max-height: 76px;
+      border-radius: 10px;
+      border: 1.5px solid var(--gold);
+      background: rgba(0, 0, 0, 0.35);
+      padding: 3px;
+    }
+
+    .game-title-en {
+      font-size: clamp(1.25rem, 3vw, 1.9rem);
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: var(--gold-bright);
+      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.85);
+      margin: 4px 0;
+    }
+
+    .game-subtitle {
+      font-size: 0.95rem;
+      color: #e6d4ad;
+      margin: 0;
+    }
+
+    #main-menu-content {
+      width: 100%;
+      max-width: 820px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 54px;
+      font-size: 1rem;
+      animation: pulseGold 4.5s infinite;
+    }
+
+    .menu-btn-wide {
+      grid-column: 1 / -1;
+      font-size: 1.12rem;
+      min-height: 60px;
+    }
+
+    .dev-credits-card {
+      width: 100%;
+      max-width: 820px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(24, 15, 10, 0.9);
+      border: 1px solid var(--gold);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 0.94rem;
+      color: var(--gold-bright);
+    }
+
+    /* Form Controls */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: right;
+    }
+
+    .field-group label {
+      font-weight: 700;
+      color: var(--gold-bright);
+      font-size: 0.92rem;
+    }
+
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 9px;
+      border: 1.5px solid var(--border-vintage);
+      background: #170f0a;
+      color: #f6e7c5;
+      font-family: inherit;
+      font-size: 0.96rem;
+    }
+
+    /* Game Arena */
+    #screen-game {
+      gap: 12px;
+    }
+
+    .game-hud {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(25, 16, 10, 0.94);
+      border: 1.5px solid var(--gold);
+      border-radius: 12px;
+    }
+
+    .hud-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .badge {
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      background: #382316;
+      border: 1px solid var(--gold);
+      color: var(--gold-bright);
+    }
+
+    .badge.role-good { background: #264522; border-color: #88c070; color: #e2ffd5; }
+    .badge.role-evil { background: #661717; border-color: #f28b82; color: #ffe1de; }
+
+    /* Wooden Table Arena supporting 4 to 15 players */
+    .wooden-table {
+      position: relative;
+      background:
+        radial-gradient(ellipse at center, #52321e 0%, #372013 55%, #23140b 100%);
+      border: 8px solid #1e1109;
+      outline: 2px solid var(--gold);
+      border-radius: 26px;
+      padding: 16px;
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.78), 0 18px 40px rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    #opponents-ring {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+      gap: 10px;
+    }
+
+    .seat-card {
+      background: rgba(20, 12, 8, 0.88);
+      border: 1.5px solid var(--border-vintage);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: center;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .seat-card.current-turn {
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 14px rgba(242, 203, 114, 0.48);
+      transform: translateY(-2px);
+    }
+
+    .seat-card.eliminated {
+      opacity: 0.5;
+      border-color: #5a2222;
+    }
+
+    .seat-name {
+      font-weight: 800;
+      font-size: 0.88rem;
+      color: var(--bg-parchment);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .seat-meta {
+      font-size: 0.76rem;
+      color: #d6be8e;
+      margin: 3px 0 5px;
+    }
+
+    .mini-backs-row {
+      display: flex;
+      justify-content: center;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+
+    .mini-card-back {
+      width: 24px;
+      height: 34px;
+      border-radius: 4px;
+      background: linear-gradient(145deg, #6b1818, #380b0b);
+      border: 1px solid var(--gold);
+      color: var(--gold-bright);
+      font-size: 6px;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      text-align: center;
+      padding: 1px;
+    }
+
+    .table-center {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(15, 9, 6, 0.55);
+      border: 1px dashed rgba(212, 166, 74, 0.45);
+    }
+
+    .deck-pile, .discard-pile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Full Hand-Drawn Card & Card Back */
+    .game-card {
+      width: 132px;
+      min-height: 190px;
+      border-radius: 12px;
+      border: 2px solid #593e22;
+      background: linear-gradient(160deg, #f8ecd0 0%, #e1ca97 100%);
+      color: #1f160f;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.55);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .game-card:hover {
+      transform: translateY(-8px) scale(1.03);
+      box-shadow: 0 14px 26px rgba(212, 166, 74, 0.35);
+    }
+
+    .game-card.type-attack { border-color: #8f1d1d; background: linear-gradient(160deg, #fae2dc, #eabcb2); }
+    .game-card.type-reveal { border-color: #9e6b11; background: linear-gradient(160deg, #fdf3cf, #edd38b); }
+    .game-card.type-swap { border-color: #1d5b6b; background: linear-gradient(160deg, #dff1f5, #b4d8e0); }
+    .game-card.type-defense { border-color: #2f6127; background: linear-gradient(160deg, #e2f2dc, #bddab2); }
+
+    .card-back-art {
+      width: 132px;
+      min-height: 190px;
+      border-radius: 12px;
+      border: 2.5px solid var(--gold);
+      background: radial-gradient(circle at center, #781d1d 0%, #3d0c0c 72%, #220606 100%);
+      color: var(--gold-bright);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+    }
+
+    .card-back-title {
+      font-weight: 900;
+      font-size: 1.08rem;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+      border-top: 1px solid rgba(242, 203, 114, 0.55);
+      border-bottom: 1px solid rgba(242, 203, 114, 0.55);
+      padding: 4px 8px;
+      width: 100%;
+    }
+
+    #player-hand {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 6px;
+      min-height: 205px;
+    }
+
+    #action-log {
+      max-height: 135px;
+      overflow-y: auto;
+      background: rgba(15, 10, 6, 0.88);
+      border: 1px solid var(--border-vintage);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: #ecdab5;
+    }
+
+    /* Pass & Play Privacy Gate */
+    .privacy-gate {
+      text-align: center;
+      padding: 34px 20px;
+      border-radius: 18px;
+      border: 2px solid var(--gold);
+      background: radial-gradient(circle at center, #382215 0%, #170e09 100%);
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none !important;
+      pointer-events: none !important;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .modal-backdrop.open {
+      display: flex !important;
+      pointer-events: auto !important;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 680px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: linear-gradient(160deg, #332014 0%, #1a100a 100%);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+      position: relative;
+      z-index: 101;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-vintage);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--gold-bright);
+    }
+
+    /* Secret Mini Games Styles */
+    .secret-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .chess-board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      border: 3px solid var(--gold);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .chess-cell {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.2rem, 4vw, 1.9rem);
+      cursor: pointer;
+      position: relative;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .chess-cell.light { background: #ebd5a7; color: #1d140c; }
+    .chess-cell.dark { background: #7b5331; color: #1d140c; }
+    .chess-cell.selected { outline: 3px solid #2e7d32; z-index: 3; background: #d4e157; }
+    .chess-cell.legal { box-shadow: inset 0 0 0 3px #1565c0; }
+
+    .domino-board {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      min-height: 90px;
+      padding: 12px;
+      background: rgba(15, 28, 17, 0.85);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+    }
+
+    .domino-tile {
+      display: inline-flex;
+      align-items: center;
+      background: #faf0d7;
+      color: #1a120b;
+      border: 2px solid #593c1f;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-weight: 900;
+      font-size: 1rem;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+    }
+
+    .domino-tile .sep {
+      width: 2px;
+      height: 22px;
+      background: #593c1f;
+    }
+
+    .football-teams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .team-card-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .team-card-btn.selected-team {
+      border-color: #76ff03;
+      background: linear-gradient(180deg, #2e5d24, #1b3815);
+    }
+
+    #football-canvas {
+      width: 100%;
+      max-width: 580px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      border: 3px solid var(--gold);
+      border-radius: 10px;
+      background: #1f5f28;
+    }
+
+    /* Footer */
+    footer#main-footer {
+      position: relative;
+      z-index: 10;
+      margin-top: 24px;
+      padding: 14px 16px;
+      background: rgba(16, 10, 6, 0.96);
+      border-top: 2px solid var(--border-vintage);
+      text-align: center;
+      font-size: 0.9rem;
+      color: #e4cfa2;
+    }
+
+    #narrator-box {
+      max-width: 960px;
+      margin: 0 auto 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(54, 34, 20, 0.72);
+      border: 1px solid var(--gold);
+      color: var(--gold-bright);
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .game-card, .card-back-art {
+        width: 108px;
+        min-height: 158px;
+        font-size: 0.8rem;
+      }
+      #opponents-ring {
+        grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Non-blocking atmospheric layers -->
+  <div class="bg-fx"></div>
+  <div class="fog-layer"></div>
+  <div class="paper-grain"></div>
+  <div class="vignette"></div>
+
+  <!-- Top Voice Chat Bar -->
+  <header id="voice-chat-bar">
+    <div class="voice-status">
+      <span id="voice-dot" class="voice-dot"></span>
+      <span id="voice-status-text">الاتصال الصوتي: جاهز (المكبر نشط | الميكروفون مكتوم)</span>
+    </div>
+    <div class="voice-controls">
+      <button id="btn-voice-mic" type="button" class="btn-sm">🎙️ الميكروفون: مكتوم</button>
+      <button id="btn-voice-speaker" type="button" class="btn-sm">🔊 المكبر: مفعل</button>
+      <button id="btn-voice-leave" type="button" class="btn-sm btn-primary">📵 مغادرة المكالمة</button>
+      <button id="btn-open-mini-ads-top" type="button" class="btn-sm btn-gold">📢 الإعلانات الصغيرة</button>
+    </div>
+  </header>
+
+  <!-- Responsive Ad Banner (Never blocks buttons, has close button) -->
+  <div id="ad-banner-wrap">
+    <div id="ad-banner-slot">
+      <strong>مساحة إعلانية مهيأة (AdSense / رعاة تامر Tteam):</strong>
+      <span id="ad-banner-msg">لم يتم ربط شيفرة إعلانية خارجية بعد — يمكنك ربط Google AdSense أو إعلان راعٍ مخصص من قائمة الإعلانات الصغيرة.</span>
+    </div>
+    <button id="btn-close-ad-banner" type="button" class="btn-close-x" aria-label="إغلاق الإعلان">✕</button>
+  </div>
+
+  <main class="app-container">
+
+    <!-- ==================== 1. MAIN MENU SCREEN ==================== -->
+    <section id="screen-home" class="screen active">
+      <div id="game-logo">
+        <div class="logo-images-row">
+          <img src="logo.png" alt="Aures Bullet Logo" class="custom-logo-img" onerror="this.style.display='none'" />
+          <!-- Hand-drawn Vintage SVG Emblem -->
+          <svg width="110" height="82" viewBox="0 0 140 104" aria-label="شعار Aures Bullet">
+            <rect x="4" y="4" width="132" height="96" rx="14" fill="#23140b" stroke="#d4a64a" stroke-width="3"/>
+            <path d="M14 82 L44 34 L68 62 L92 24 L126 82 Z" fill="#4f3520" stroke="#f2cb72" stroke-width="2"/>
+            <path d="M44 34 L53 47 L42 50 Z" fill="#f3e5c3"/>
+            <path d="M92 24 L103 43 L87 46 Z" fill="#f3e5c3"/>
+            <circle cx="70" cy="48" r="17" fill="none" stroke="#b82929" stroke-width="2.5" stroke-dasharray="4 2"/>
+            <path d="M58 58 L84 36" stroke="#f2cb72" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="84" cy="36" r="3.5" fill="#f2cb72"/>
+            <text x="70" y="95" text-anchor="middle" fill="#f2cb72" font-size="10" font-weight="bold">النصر لنا • 1954</text>
+          </svg>
+          <img src="tteam-logo.png" alt="تامر Tteam Logo" class="custom-logo-img" onerror="this.style.display='none'" />
+        </div>
+        <h1 class="game-title-en">Aures Bullet: Secret of the Traitor and the Colonizer</h1>
+        <p class="game-subtitle">لعبة استنتاج اجتماعي بالبطاقات مستوحاة من الثورة الجزائرية وملفات الأوراس السرية (4 إلى 15 لاعباً)</p>
+      </div>
+
+      <div id="main-menu-content" class="vintage-panel">
+        <button id="btn-new-game" type="button" class="menu-btn menu-btn-wide btn-primary">⚔️ بدء لعبة جديدة (انطلاق فوري)</button>
+        <button id="btn-mode-bots" type="button" class="menu-btn">🤖 اللعب ضد الروبوتات (سهل، متوسط، صعب)</button>
+        <button id="btn-mode-multi" type="button" class="menu-btn">🌐 غرف جماعية مع الأصدقاء (أونلاين / عدة أجهزة)</button>
+        <button id="btn-mode-pass" type="button" class="menu-btn">📱 اللعب على هاتف واحد (Pass &amp; Play)</button>
+        <button id="btn-story" type="button" class="menu-btn btn-olive">📜 قصة الثورة الجزائرية (1 نوفمبر 1954 – 5 جويلية 1962)</button>
+        <button id="btn-secrets" type="button" class="menu-btn">🕵️ القوائم السرية والأرشيف</button>
+        <button id="btn-secret-code-open" type="button" class="menu-btn btn-gold">🔐 الكود السري لقائمة الألعاب</button>
+        <button id="btn-guide" type="button" class="menu-btn">📖 دليل اللعب</button>
+        <button id="btn-sound-settings" type="button" class="menu-btn">🔊 إعدادات الصوت</button>
+        <button id="btn-about" type="button" class="menu-btn">ℹ️ حول اللعبة وهوية المطور</button>
+        <button id="btn-mini-ads-open" type="button" class="menu-btn">💼 قائمة الإعلانات الصغيرة</button>
+      </div>
+
+      <div class="dev-credits-card">
+        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" fill="#2c1a10" stroke="#f2cb72" stroke-width="2"/>
+          <path d="M11 13 H29 M20 13 V30" stroke="#f2cb72" stroke-width="3.2" stroke-linecap="round"/>
+        </svg>
+        <span><strong>هوية المطور:</strong> تامر Tteam © 2026 - جميع الحقوق محفوظة - Aures Bullet: Secret of the Traitor and the Colonizer</span>
+      </div>
+    </section>
+
+    <!-- ==================== 2. SETUP: VS BOTS ==================== -->
+    <section id="screen-setup-bots" class="screen">
+      <div class="vintage-panel">
+        <div class="modal-header">
+          <h3>🤖 اللعب ضد الروبوتات (4 إلى 15 لاعباً)</h3>
+          <button id="btn-back-from-bots" type="button" class="btn-sm">↩️ القائمة الرئيسية</button>
+        </div>
+        <div class="form-grid">
+          <div class="field-group">
+            <label for="bots-player-name">اسمك في الخلية:</label>
+            <input id="bots-player-name" type="text" value="القائد طارق" maxlength="22" />
+          </div>
+          <div class="field-group">
+            <label for="bots-count">إجمالي عدد اللاعبين (من 4 إلى 15):</label>
+            <input id="bots-count" type="number" min="4" max="15" value="6" />
+          </div>
+          <div class="field-group">
+            <label for="bots-difficulty">مستوى ذكاء الروبوتات:</label>
+            <select id="bots-difficulty">
+              <option value="easy">سهل (تلقائي)</option>
+              <option value="medium" selected>متوسط (تكتيكي)</option>
+              <option value="hard">صعب (استنتاجي شرس)</option>
+            </select>
+          </div>
+        </div>
+        <p style="color:#d9c292;font-size:0.88rem;margin:12px 0;">* يتم توزيع 5 بطاقات لكل لاعب في بداية الجولة مع أدوار سرية (مجاهد، خائن، فدائي، مخبر).</p>
+        <button id="btn-start-bots" type="button" class="btn-primary">🚀 بدء المهمة ضد الروبوتات</button>
+      </div>
+    </section>
+
+    <!-- ==================== 3. SETUP: MULTIPLAYER ROOMS ==================== -->
+    <section id="screen-setup-multi" class="screen">
+      <div class="vintage-panel">
+        <div class="modal-header">
+          <h3>🌐 غرف جماعية مع الأصدقاء (4 إلى 15 لاعباً)</h3>
+          <button id="btn-back-from-multi" type="button" class="btn-sm">↩️ القائمة الرئيسية</button>
+        </div>
+
+        <div class="parchment-box" style="margin-bottom:14px;padding:10px 14px;">
+          <strong>مؤشر الاتصال والمزامنة:</strong>
+          <span id="multi-sync-status">جاهز للمزامنة الفورية عبر BroadcastChannel و LocalStorage للنوافذ/الأجهزة المحلية.</span>
+          <div style="font-size:0.82rem;color:#5a4632;margin-top:4px;">ملاحظة تقنية: الربط عن بُعد عبر شبكات إنترنت مختلفة يتطلب خادم إشارة (WebSocket / WebRTC Signaling Server)؛ حالياً تعمل الغرفة فوراً بين علامات التبويب والنوافذ على نفس المتصفح مع رابط دعوة جاهز.</div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field-group">
+            <label for="multi-player-name">اسمك داخل الغرفة:</label>
+            <input id="multi-player-name" type="text" value="فدائي 01" maxlength="22" />
+          </div>
+          <div class="field-group">
+            <label for="multi-capacity">سعة الغرفة (من 4 إلى 15 لاعباً):</label>
+            <input id="multi-capacity" type="number" min="4" max="15" value="6" />
+          </div>
+          <div class="field-group">
+            <label for="multi-join-code">رمز الغرفة للانضمام:</label>
+            <input id="multi-join-code" type="text" placeholder="مثال: AUR-1954" maxlength="14" />
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;">
+          <button id="btn-create-room" type="button" class="btn-primary">✨ إنشاء غرفة جديدة</button>
+          <button id="btn-join-room" type="button" class="btn-olive">🔑 الانضمام لغرفة</button>
+          <button id="btn-copy-room" type="button" class="btn-gold">📋 نسخ الرمز ورابط الدعوة</button>
+        </div>
+
+        <div id="room-lobby-box" class="vintage-panel" style="display:none;background:rgba(16,10,7,0.85);">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+            <div>
+              <strong>رمز الغرفة:</strong> <span id="lobby-room-code" class="badge">---</span>
+              <span id="lobby-room-cap" class="badge">0 / 6</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="btn-toggle-ready" type="button" class="btn-sm btn-olive">✅ جاهز</button>
+              <button id="btn-fill-bots-room" type="button" class="btn-sm">🤖 إكمال المقاعد الشاغرة بروبوتات</button>
+              <button id="btn-start-room-game" type="button" class="btn-sm btn-primary">⚔️ بدء الجولة</button>
+            </div>
+          </div>
+          <div id="lobby-invite-link" style="font-size:0.8rem;color:#c9b180;word-break:break-all;margin-bottom:8px;"></div>
+          <div id="lobby-players-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. SETUP: PASS & PLAY ==================== -->
+    <section id="screen-setup-pass" class="screen">
+      <div class="vintage-panel">
+        <div class="modal-header">
+          <h3>📱 اللعب على هاتف واحد — Pass &amp; Play (4 إلى 15 لاعباً)</h3>
+          <button id="btn-back-from-pass" type="button" class="btn-sm">↩️ القائمة الرئيسية</button>
+        </div>
+        <div class="form-grid">
+          <div class="field-group">
+            <label for="pass-count">عدد اللاعبين على الجهاز (من 4 إلى 15):</label>
+            <input id="pass-count" type="number" min="4" max="15" value="4" />
+          </div>
+          <div class="field-group" style="justify-content:flex-end;">
+            <button id="btn-generate-pass-names" type="button">📝 تحديث حقول الأسماء</button>
+          </div>
+        </div>
+        <div id="pass-names-container" class="form-grid" style="margin-top:12px;"></div>
+        <div style="margin-top:14px;">
+          <button id="btn-start-pass" type="button" class="btn-primary">🔐 بدء اللعب بنظام حاجز الخصوصية</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5. PASS & PLAY PRIVACY GATE ==================== -->
+    <section id="screen-pass-privacy" class="screen">
+      <div class="privacy-gate">
+        <h2 style="color:var(--gold-bright);margin-top:0;">🛡️ حاجز الخصوصية — تمرير الجهاز</h2>
+        <p style="font-size:1.1rem;">يرجى تسليم الهاتف أو الشاشة الآن إلى اللاعب:</p>
+        <div id="privacy-player-name" style="font-size:1.9rem;font-weight:900;color:#fff2c6;margin:12px 0;">---</div>
+        <p style="color:#d2bb8a;font-size:0.9rem;">تأكد أن باقي اللاعبين لا ينظرون إلى الشاشة قبل كشف دورك وبطاقاتك السرية.</p>
+        <button id="btn-privacy-reveal" type="button" class="btn-primary" style="font-size:1.08rem;padding:13px 24px;">👁️ أنا اللاعب المعني - كشف دوري وبطاقاتي</button>
+      </div>
+    </section>
+
+    <!-- ==================== 6. GAME TABLE ARENA ==================== -->
+    <section id="screen-game" class="screen">
+      <div class="game-hud">
+        <div class="hud-badges">
+          <span id="hud-mode" class="badge">الوضع: ---</span>
+          <span id="hud-round" class="badge">الدور: 1</span>
+          <span id="hud-active-player" class="badge">الدور الحالي: ---</span>
+          <span id="hud-your-role" class="badge">دورك: ---</span>
+          <span id="hud-shield-status" class="badge" style="display:none;">🛡️ محمي بدفاع</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="btn-call-vote" type="button" class="btn-sm btn-gold">⚖️ جلسة تصويت واتهام</button>
+          <button id="btn-pass-hide" type="button" class="btn-sm btn-olive" style="display:none;">🙈 إخفاء وتسليم الجهاز للاعب التالي</button>
+          <button id="btn-game-exit" type="button" class="btn-sm btn-primary">↩️ العودة للقائمة الرئيسية</button>
+        </div>
+      </div>
+
+      <div class="wooden-table">
+        <!-- Opponents Ring (4 to 15 seats cleanly arranged) -->
+        <div id="opponents-ring"></div>
+
+        <!-- Center Deck & Discard -->
+        <div class="table-center">
+          <div class="deck-pile">
+            <div id="btn-draw-card" class="card-back-art" title="انقر لسحب بطاقة من الكومة">
+              <svg width="46" height="40" viewBox="0 0 60 50" aria-hidden="true">
+                <path d="M5 42 L20 14 L32 28 L44 10 L55 42 Z" fill="none" stroke="#f2cb72" stroke-width="2.5"/>
+                <rect x="21" y="29" width="18" height="12" rx="2" fill="#2d130e" stroke="#f2cb72" stroke-width="1.5"/>
+              </svg>
+              <div class="card-back-title">النصر لنا</div>
+              <div style="font-size:0.74rem;color:#f5deb0;">كومة السحب (<span id="deck-count">0</span>)</div>
+            </div>
+            <button id="btn-draw-btn" type="button" class="btn-sm">🃏 سحب بطاقة</button>
+          </div>
+
+          <div class="discard-pile">
+            <div id="discard-slot">
+              <div class="game-card" style="cursor:default;">
+                <div style="font-weight:800;font-size:0.85rem;">أرشيف اللعب</div>
+                <div style="font-size:0.78rem;">انقر على بطاقة من يدك للعبها</div>
+                <div style="font-size:0.72rem;color:#6e4e2a;">الأوراس 1954</div>
+              </div>
+            </div>
+            <span style="font-size:0.8rem;color:#e5ce9c;">آخر بطاقة ملعوبة</span>
+          </div>
+        </div>
+
+        <!-- Active Player Hand -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:0 6px;">
+            <strong style="color:var(--gold-bright);">🃏 بطاقاتك المكشوفة لك وحدك (<span id="hand-owner-name">---</span>):</strong>
+            <span style="font-size:0.82rem;color:#dbc493;">انقر على أي بطاقة لقراءة دورها ولعبها</span>
+          </div>
+          <div id="player-hand"></div>
+        </div>
+
+        <!-- Tactical Action Log -->
+        <div id="action-log"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 7. STORY OF THE REVOLUTION ==================== -->
+    <section id="screen-story" class="screen">
+      <div class="vintage-panel">
+        <div class="modal-header">
+          <h3>📜 قصة الثورة الجزائرية (1 نوفمبر 1954 – 5 جويلية 1962)</h3>
+          <button id="btn-back-from-story" type="button" class="btn-sm">↩️ القائمة الرئيسية</button>
+        </div>
+        <div id="story-chapters-list" style="display:grid;gap:12px;"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 8. SECRET MENUS & DOSSIERS ==================== -->
+    <section id="screen-secrets" class="screen">
+      <div class="vintage-panel">
+        <div class="modal-header">
+          <h3>🕵️ القوائم السرية وأرشيف التحقيق</h3>
+          <button id="btn-back-from-secrets" type="button" class="btn-sm">↩️ القائمة الرئيسية</button>
+        </div>
+
+        <!-- Featured Narrative File -->
+        <div class="parchment-box" style="margin-bottom:14px;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;">
+            <h3 style="margin:0;color:#7a1818;">📁 ملف سري رئيسي: Aures Bullet: Secret of the Traitor and the Colonizer</h3>
+            <button id="btn-narrate-aures-file" type="button" class="btn-sm btn-primary">🔊 استماع للملف بصوت الراوي</button>
+          </div>
+          <p style="line-height:1.8;margin-top:10px;">
+            في شتاء جبال الأوراس الشامخة، انطلقت الرصاصة الأولى لتعلن ميلاد فجر جديد، لكن قيادة الخلية السرية اكتشفت تسرباً خطيراً لوثائق التموين والتحركات عبر عميل مزدوج يتلقى أوامر مباشرة من مخابرات المستعمر. مهمتك في هذا الملف وفي ساحة الطاولة هي تحليل كل بطاقة هجوم أو كشف دور، حماية رفاق الخلية بالدرع التكتيكي، وفضح الخائن والمخبر قبل أن تطبق قوات الاحتلال على المعقل الجبلي!
+          </p>
+        </div>
+
+        <div id="secret-dossiers-grid" class="form-grid"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 9. SECRET GAMES MENU (1/1/1-11-1954) ==================== -->
+    <section id="screen-secret-games" class="screen">
+      <div class="vintage-panel">
+        <div class="modal-header">
+          <h3>🎖️ قائمة الألعاب السرية المؤرخة بالثورة الجزائرية (1/1/1-11-1954)</h3>
+          <button id="btn-back-from-secret-games" type="button" class="btn-sm">↩️ القائمة الرئيسية</button>
+        </div>
+
+        <div class="parchment-box" style="margin-bottom:12px;padding:10px 14px;">
+          <strong>تأريخ الملفات:</strong> محطة 1 نوفمبر 1954 (شطرنج التخطيط الاستراتيجي) • محطة 20 أوت 1956 مؤتمر الصومام (دومينو ربط الخلايا) • محطة 5 جويلية 1962 فرحة الاستقلال (بطولة كرة القدم الـ 16 منتخباً — توقيع تامر Tteam).
+        </div>
+
+        <div class="secret-tabs">
+          <button id="btn-tab-chess" type="button" class="btn-gold">♟️ شطرنج بنسختنا الخاصة</button>
+          <button id="btn-tab-domino" type="button">🁣 دومينو بنسختنا الخاصة</button>
+          <button id="btn-tab-football" type="button">⚽ لعبة كرة قدم (16 منتخباً فقط)</button>
+        </div>
+
+        <!-- MINI GAME 1: CHESS -->
+        <div id="panel-chess" class="vintage-panel" style="display:block;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+            <div>
+              <strong>♟️ شطرنج الأوراس — نسخة تامر Tteam</strong>
+              <span id="chess-turn-label" class="badge" style="margin-right:8px;">الدور: الأبيض</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-chess-mode" type="button" class="btn-sm">🤖 ضد الحاسوب: مفعل</button>
+              <button id="btn-chess-reset" type="button" class="btn-sm btn-primary">🔄 إعادة الرقعة</button>
+            </div>
+          </div>
+          <div id="chess-status-msg" style="text-align:center;color:var(--gold-bright);margin-bottom:8px;">اختر قطعة لتحريكها وفق القواعد القانونية.</div>
+          <div id="chess-board" class="chess-board"></div>
+        </div>
+
+        <!-- MINI GAME 2: DOMINO -->
+        <div id="panel-domino" class="vintage-panel" style="display:none;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+            <div>
+              <strong>🁣 دومينو الصومام — نسخة تامر Tteam</strong>
+              <span id="domino-score-badge" class="badge">نقاطك: 0 | الخصم: 0</span>
+              <span id="domino-boneyard-badge" class="badge">الكومة: 14</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-domino-draw" type="button" class="btn-sm btn-gold">🃏 سحب من الكومة</button>
+              <button id="btn-domino-reset" type="button" class="btn-sm btn-primary">🔄 جولة جديدة</button>
+            </div>
+          </div>
+          <div id="domino-status" style="color:var(--gold-bright);margin-bottom:8px;">دورك: انقر على قطعة متطابقة مع أحد طرفي السلسلة.</div>
+          <div style="margin-bottom:6px;font-size:0.85rem;color:#d6be8e;">قطع الخصم (<span id="domino-ai-count">7</span>): 🁢🁢🁢</div>
+          <div id="domino-board" class="domino-board"></div>
+          <div style="margin-top:10px;font-weight:700;color:var(--gold-bright);">قطعك:</div>
+          <div id="domino-player-hand" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
+        </div>
+
+        <!-- MINI GAME 3: FOOTBALL (16 TEAMS ONLY, STRICTLY 3 MENUS ONLY) -->
+        <div id="panel-football" class="vintage-panel" style="display:none;">
+          <div style="margin-bottom:10px;">
+            <strong>⚽ كرة قدم الاستقلال (16 منتخباً مخصصاً فقط — توقيع تامر Tteam)</strong>
+          </div>
+          <!-- Strictly 3 Menus Only: Play Menu, Settings Menu, Change Team Menu -->
+          <div class="secret-tabs" id="football-3-menus">
+            <button id="btn-fb-menu-play" type="button" class="btn-primary">1️⃣ قائمة اللعب</button>
+            <button id="btn-fb-menu-settings" type="button">2️⃣ قائمة الإعدادات</button>
+            <button id="btn-fb-menu-teams" type="button" class="btn-gold">3️⃣ قائمة تغيير المنتخب</button>
+          </div>
+
+          <!-- Football Menu 1: Play -->
+          <div id="fb-view-play" style="display:block;">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+              <span id="fb-match-teams" class="badge">منتخبك: --- ضد ---</span>
+              <span id="fb-match-score" class="badge">النتيجة: 0 - 0</span>
+              <span id="fb-match-timer" class="badge">الوقت: 60ث</span>
+              <button id="btn-fb-start-match" type="button" class="btn-sm btn-olive">▶️ بدء / إعادة المباراة</button>
+            </div>
+            <canvas id="football-canvas" width="560" height="320"></canvas>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px;">
+              <button id="btn-fb-up" type="button" class="btn-sm">⬆️</button>
+              <button id="btn-fb-left" type="button" class="btn-sm">⬅️</button>
+              <button id="btn-fb-down" type="button" class="btn-sm">⬇️</button>
+              <button id="btn-fb-right" type="button" class="btn-sm">➡️</button>
+              <button id="btn-fb-pass" type="button" class="btn-sm btn-gold">👟 تمرير</button>
+              <button id="btn-fb-shoot" type="button" class="btn-sm btn-primary">⚽ تسديد</button>
+            </div>
+          </div>
+
+          <!-- Football Menu 2: Settings -->
+          <div id="fb-view-settings" style="display:none;">
+            <div class="form-grid">
+              <div class="field-group">
+                <label for="fb-set-sound">صوت المباراة:</label>
+                <select id="fb-set-sound">
+                  <option value="on" selected>مفعل</option>
+                  <option value="off">مكتوم</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="fb-set-duration">مدة الشوط / المباراة:</label>
+                <select id="fb-set-duration">
+                  <option value="45">45 ثانية</option>
+                  <option value="60" selected>60 ثانية</option>
+                  <option value="90">90 ثانية</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="fb-set-difficulty">مستوى المنافس:</label>
+                <select id="fb-set-difficulty">
+                  <option value="easy">سهل</option>
+                  <option value="medium" selected>متوسط</option>
+                  <option value="hard">صعب</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Football Menu 3: Change Team (Strictly 16 Teams) -->
+          <div id="fb-view-teams" style="display:none;">
+            <p style="color:var(--gold-bright);margin-top:0;">اختر منتخبك من بين الـ 16 منتخباً الحصرية لتامر Tteam:</p>
+            <div id="fb-teams-grid" class="football-teams-grid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+  <!-- Guide Modal -->
+  <div id="modal-guide" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>📖 دليل اللعب — قواعد Aures Bullet</h3>
+        <button id="close-modal-guide" type="button" class="btn-close-x">✕</button>
+      </div>
+      <div class="parchment-box" style="line-height:1.8;">
+        <p><strong>عدد اللاعبين:</strong> من 4 إلى 15 لاعباً في جميع الأنماط. يحصل كل لاعب على <strong>5 بطاقات</strong> في بداية الجولة.</p>
+        <ul>
+          <li><strong>البطاقات السرية للأدوار:</strong> ينقسم اللاعبون بين <em>المجاهدين والفدائيين</em> (أبطال الخلية) ضد <em>الخائن والمخبر</em> (عملاء المستعمر).</li>
+          <li><strong>بطاقة هجوم (+2):</strong> تجبر لاعباً مستهدفاً على سحب بطاقتين من الكومة ما لم يكن محمياً ببطاقة دفاع.</li>
+          <li><strong>بطاقة كشف دور (عين):</strong> تكشف الدور السري للاعب مختار لك وحدك لمدة 5 ثوانٍ (ما لم يكن محمياً بدفاع).</li>
+          <li><strong>بطاقة تبديل دور (سهمين):</strong> تجبر لاعبين عشوائيين على تبادل أوراقهما المتبقية في اليد.</li>
+          <li><strong>بطاقة دفاع (درع):</strong> تحميك من الهجوم والكشف لدور واحد.</li>
+          <li><strong>بطاقة عادية:</strong> وثيقة ميدانية تُلعب لتخفيف اليد وتمرير الدور.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sound Settings Modal -->
+  <div id="modal-settings" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🔊 إعدادات الصوت والراوي</h3>
+        <button id="close-modal-settings" type="button" class="btn-close-x">✕</button>
+      </div>
+      <div class="form-grid">
+        <div class="field-group">
+          <label for="opt-narrator-enabled">صوت الراوي العربي (SpeechSynthesis):</label>
+          <select id="opt-narrator-enabled">
+            <option value="on" selected>مفعل</option>
+            <option value="off">مكتوم</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="opt-sfx-enabled">المؤثرات الصوتية للبطاقات:</label>
+          <select id="opt-sfx-enabled">
+            <option value="on" selected>مفعل</option>
+            <option value="off">مكتوم</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button id="btn-test-narrator" type="button" class="btn-gold">🗣️ تجربة صوت الراوي</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div id="modal-about" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>ℹ️ حول اللعبة وهوية المطور</h3>
+        <button id="close-modal-about" type="button" class="btn-close-x">✕</button>
+      </div>
+      <div class="parchment-box" style="line-height:1.85;text-align:center;">
+        <h4 style="margin-top:0;color:#7a1818;">Aures Bullet: Secret of the Traitor and the Colonizer</h4>
+        <p>تجربة استنتاج اجتماعي بالبطاقات مرسومة يدوياً بأسلوب الوثائق التاريخية، تحاكي صمود خلايا الثورة الجزائرية في جبال الأوراس وكشف العملاء المتسللين.</p>
+        <p style="font-weight:900;color:#1e1610;border-top:1px solid #8a6b42;padding-top:10px;">
+          تامر Tteam © 2026 - جميع الحقوق محفوظة - Aures Bullet: Secret of the Traitor and the Colonizer
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secret Code Modal -->
+  <div id="modal-secret-code" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🔐 إدخال الكود السري لملفات الثورة</h3>
+        <button id="close-modal-secret-code" type="button" class="btn-close-x">✕</button>
+      </div>
+      <p>أدخل الكود السري الدقيق لفتح قائمة الألعاب السرية المؤرخة بالثورة الجزائرية:</p>
+      <div class="field-group">
+        <label for="secret-code-input">الكود السري:</label>
+        <input id="secret-code-input" type="text" placeholder="أدخل الكود هنا..." autocomplete="off" />
+      </div>
+      <div id="secret-code-msg" style="margin:8px 0;font-size:0.88rem;color:#f28b82;"></div>
+      <button id="btn-verify-secret-code" type="button" class="btn-primary">🔓 تحقق وافتح القائمة السرية</button>
+    </div>
+  </div>
+
+  <!-- Mini Ads Menu Modal -->
+  <div id="modal-mini-ads" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>💼 قائمة الإعلانات الصغيرة وإدارة الدخل</h3>
+        <button id="close-modal-mini-ads" type="button" class="btn-close-x">✕</button>
+      </div>
+      <div class="parchment-box" style="margin-bottom:12px;">
+        <strong>حالة الإعلانات:</strong>
+        <p id="mini-ad-preview-text" style="margin:6px 0;">لا توجد شيفرة AdSense خارجية مربوطة حالياً. هذه الحاوية مهيأة للربط المباشر عند النشر دون التأثير على اللعب أو الأزرار.</p>
+      </div>
+      <div class="form-grid">
+        <div class="field-group">
+          <label for="ad-provider-select">نوع العرض الإعلاني:</label>
+          <select id="ad-provider-select">
+            <option value="none" selected>غير مربوط (إشعار نظيف بدون إعلانات وهمية)</option>
+            <option value="adsense">حاوية Google AdSense جاهزة</option>
+            <option value="sponsor">إعلان راعٍ مخصص (تامر Tteam)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label for="ad-custom-text">نص إعلان الراعي المخصص / معرّف الوحدة:</label>
+          <input id="ad-custom-text" type="text" placeholder="مثال: ca-pub-XXXX أو رسالة الراعي" />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button id="btn-apply-ad-settings" type="button" class="btn-gold">💾 تطبيق الإعدادات</button>
+        <button id="btn-toggle-top-banner" type="button" class="btn-sm">👁️ إظهار/إخفاء الشريط العلوي</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Target Selection Modal (for Attack +2, Reveal Eye, or Voting) -->
+  <div id="modal-target" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-target-title">🎯 اختر اللاعب المستهدف</h3>
+        <button id="close-modal-target" type="button" class="btn-close-x">✕</button>
+      </div>
+      <p id="modal-target-desc" style="margin-top:0;color:#e6d4ad;"></p>
+      <div id="modal-target-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Reveal Role Modal (5 Seconds) -->
+  <div id="modal-reveal" class="modal-backdrop">
+    <div class="modal-box" style="text-align:center;">
+      <div class="modal-header">
+        <h3>👁️ كشف الدور السري (خاص بك وحدك)</h3>
+        <button id="close-modal-reveal" type="button" class="btn-close-x">✕</button>
+      </div>
+      <div id="reveal-target-name" style="font-size:1.3rem;font-weight:800;color:var(--gold-bright);"></div>
+      <div id="reveal-target-role" style="font-size:1.8rem;font-weight:900;margin:12px 0;"></div>
+      <div id="reveal-countdown" class="badge">يختفي تلقائياً خلال 5 ثوانٍ</div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="modal-gameover" class="modal-backdrop">
+    <div class="modal-box" style="text-align:center;">
+      <div class="modal-header">
+        <h3>🏁 نهاية الجولة — تقرير الخلية</h3>
+        <button id="close-modal-gameover" type="button" class="btn-close-x">✕</button>
+      </div>
+      <h2 id="gameover-winner-title" style="color:var(--gold-bright);"></h2>
+      <p id="gameover-summary"></p>
+      <div id="gameover-roles-reveal" style="text-align:right;margin:12px 0;max-height:220px;overflow-y:auto;"></div>
+      <button id="btn-gameover-home" type="button" class="btn-primary">🏠 العودة للقائمة الرئيسية</button>
+    </div>
+  </div>
+
+  <!-- Footer with Narrator Explanation & Exact Developer Signature -->
+  <footer id="main-footer">
+    <div id="narrator">
+      <div id="narrator-box">🎙️ الراوي: مرحباً بكم في قيادة الأوراس السرية. انقر على أي بطاقة أو قائمة للبدء.</div>
+    </div>
+    <div>تامر Tteam © 2026 - جميع الحقوق محفوظة - Aures Bullet: Secret of the Traitor and the Colonizer</div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* ================= SAFE HELPER & UI PROTECTION ================= */
+      function onClick(id, handler) {
+        try {
+          var el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('click', function (ev) {
+              try {
+                handler(ev, el);
+              } catch (err) {
+                console.error('Handler error for #' + id, err);
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Binding error for #' + id, err);
+        }
+      }
+
+      // Protection against right-click and inspection shortcuts without blocking inputs
+      document.addEventListener('contextmenu', function (e) {
+        try { e.preventDefault(); } catch (_) {}
+      });
+      document.addEventListener('keydown', function (e) {
+        try {
+          var key = (e.key || '').toUpperCase();
+          if (
+            e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (key === 'I' || key === 'J' || key === 'C')) ||
+            (e.ctrlKey && key === 'U')
+          ) {
+            e.preventDefault();
+          }
+        } catch (_) {}
+      });
+
+      function clampPlayers(val) {
+        var n = parseInt(val, 10);
+        if (isNaN(n)) n = 4;
+        if (n < 4) n = 4;
+        if (n > 15) n = 15;
+        return n;
+      }
+
+      function shuffle(arr) {
+        var a = arr.slice();
+        for (var i = a.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var tmp = a[i];
+          a[i] = a[j];
+          a[j] = tmp;
+        }
+        return a;
+      }
+
+      /* ================= SCREEN & MODAL NAVIGATION ================= */
+      function showScreen(screenId) {
+        try {
+          var screens = document.querySelectorAll('.screen');
+          for (var i = 0; i < screens.length; i++) {
+            screens[i].classList.remove('active');
+          }
+          var target = document.getElementById(screenId);
+          if (target) {
+            target.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        } catch (err) {
+          console.error('showScreen error', err);
+        }
+      }
+
+      function openModal(modalId) {
+        try {
+          var m = document.getElementById(modalId);
+          if (m) m.classList.add('open');
+        } catch (err) {
+          console.error('openModal error', err);
+        }
+      }
+
+      function closeModal(modalId) {
+        try {
+          var m = document.getElementById(modalId);
+          if (m) m.classList.remove('open');
+        } catch (err) {
+          console.error('closeModal error', err);
+        }
+      }
+
+      /* ================= SPEECH & AUDIO SYSTEM ================= */
+      var audioSettings = {
+        narrator: true,
+        sfx: true,
+        micOn: false,
+        speakerOn: true,
+        inCall: true
+      };
+
+      function speakNarrator(text) {
+        try {
+          var box = document.getElementById('narrator-box');
+          if (box) box.textContent = '🎙️ الراوي: ' + text;
+          if (!audioSettings.narrator || !audioSettings.speakerOn || !audioSettings.inCall) return;
+          if (typeof window.speechSynthesis !== 'undefined') {
+            window.speechSynthesis.cancel();
+            var utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'ar-DZ';
+            utter.rate = 0.98;
+            utter.pitch = 0.95;
+            var voices = window.speechSynthesis.getVoices();
+            if (voices && voices.length) {
+              for (var i = 0; i < voices.length; i++) {
+                if (voices[i].lang && voices[i].lang.indexOf('ar') === 0) {
+                  utter.voice = voices[i];
+                  break;
+                }
+              }
+            }
+            window.speechSynthesis.speak(utter);
+          }
+        } catch (err) {
+          console.warn('SpeechSynthesis error:', err);
+        }
+      }
+
+      function playTone(freq, duration) {
+        try {
+          if (!audioSettings.sfx || !audioSettings.speakerOn) return;
+          var AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          var ctx = new AudioCtx();
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq || 440;
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (duration || 0.14));
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + (duration || 0.14));
+        } catch (_) {}
+      }
+
+      function updateVoiceBarUI() {
+        var dot = document.getElementById('voice-dot');
+        var status = document.getElementById('voice-status-text');
+        var micBtn = document.getElementById('btn-voice-mic');
+        var spkBtn = document.getElementById('btn-voice-speaker');
+        var leaveBtn = document.getElementById('btn-voice-leave');
+
+        if (!audioSettings.inCall) {
+          if (dot) dot.classList.add('off');
+          if (status) status.textContent = 'الاتصال الصوتي: خارج المكالمة';
+          if (leaveBtn) leaveBtn.textContent = '📞 الانضمام للمكالمة';
+        } else {
+          if (dot) dot.classList.remove('off');
+          if (status) {
+            status.textContent =
+              'الاتصال الصوتي: متصل (' +
+              (audioSettings.speakerOn ? 'المكبر نشط' : 'المكبر مكتوم') +
+              ' | ' +
+              (audioSettings.micOn ? 'الميكروفون مفتوح' : 'الميكروفون مكتوم') +
+              ')';
+          }
+          if (leaveBtn) leaveBtn.textContent = '📵 مغادرة المكالمة';
+        }
+        if (micBtn) micBtn.textContent = audioSettings.micOn ? '🎙️ الميكروفون: مفتوح' : '🎙️ الميكروفون: مكتوم';
+        if (spkBtn) spkBtn.textContent = audioSettings.speakerOn ? '🔊 المكبر: مفعل' : '🔇 المكبر: مكتوم';
+      }
+
+      /* ================= CARD & ROLE DEFINITIONS ================= */
+      var ROLES_META = {
+        mujahid: { name: 'مجاهد', team: 'good', desc: 'حامي الجبل والخلايا، يسعى لكشف الخائن وإحباط مخطط المستعمر.' },
+        fidai: { name: 'فدائي', team: 'good', desc: 'منفذ المهمات السرية، يدافع عن الرفاق بالوثائق واليقظة.' },
+        traitor: { name: 'خائن', team: 'evil', desc: 'متسلل يمرر المعلومات للمستعمر ويعرقل التحقيق.' },
+        informant: { name: 'مخبر', team: 'evil', desc: 'عين المستعمر الخفية داخل الخلية، يتعاون مع الخائن.' }
+      };
+
+      var CARD_DEFS = [
+        {
+          type: 'attack',
+          title: 'هجوم (+2)',
+          desc: 'بطاقة هجوم: تجبر اللاعب المستهدف على سحب بطاقتين من الكومة ما لم يمتلك درع دفاع.',
+          svg: '<svg width="58" height="46" viewBox="0 0 60 50"><path d="M10 40 L48 10 M14 10 L46 40" stroke="#8f1d1d" stroke-width="4" stroke-linecap="round"/><circle cx="30" cy="25" r="7" fill="#8f1d1d"/></svg>'
+        },
+        {
+          type: 'reveal',
+          title: 'كشف دور (عين)',
+          desc: 'بطاقة كشف دور: تكشف لك وحدك الدور السري لأي لاعب تختاره لمدة 5 ثوانٍ ما لم يكن محمياً بدفاع.',
+          svg: '<svg width="58" height="46" viewBox="0 0 60 50"><path d="M6 25 Q30 4 54 25 Q30 46 6 25 Z" fill="#fff7dc" stroke="#8a5a0d" stroke-width="3"/><circle cx="30" cy="25" r="8" fill="#8a5a0d"/><circle cx="30" cy="25" r="3" fill="#1e1610"/></svg>'
+        },
+        {
+          type: 'swap',
+          title: 'تبديل دور (سهمين)',
+          desc: 'بطاقة تبديل دور: تجبر لاعبين عشوائيين على تبادل أوراقهما المتبقية في اليد فوراً.',
+          svg: '<svg width="58" height="46" viewBox="0 0 60 50"><path d="M12 16 H46 L38 9 M48 34 H14 L22 41" fill="none" stroke="#1d5b6b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        },
+        {
+          type: 'defense',
+          title: 'دفاع (درع)',
+          desc: 'بطاقة دفاع: تحميك من تأثير بطاقات الهجوم والكشف لدور واحد كامل.',
+          svg: '<svg width="58" height="46" viewBox="0 0 60 50"><path d="M30 5 L50 13 V26 C50 37 40 44 30 47 C20 44 10 37 10 26 V13 Z" fill="#4b7b3f" stroke="#1e3c17" stroke-width="3"/><path d="M22 25 L28 31 L39 19" fill="none" stroke="#fff" stroke-width="3"/></svg>'
+        },
+        {
+          type: 'normal',
+          title: 'وثيقة الأوراس',
+          desc: 'بطاقة عادية: بلا تأثير خاص، تُلعب لتخفيف اليد وتمرير الدور للرفيق التالي.',
+          svg: '<svg width="58" height="46" viewBox="0 0 60 50"><rect x="14" y="8" width="32" height="34" rx="3" fill="#f3e5c3" stroke="#5c4022" stroke-width="2.5"/><path d="M20 18 H40 M20 25 H38 M20 32 H34" stroke="#5c4022" stroke-width="2.2"/></svg>'
+        }
+      ];
+
+      function buildDeck(playerCount) {
+        var deck = [];
+        var copies = Math.max(2, Math.ceil(playerCount / 2));
+        for (var c = 0; c < copies; c++) {
+          for (var i = 0; i < 4; i++) deck.push({ id: 'atk_' + c + '_' + i, type: 'attack' });
+          for (var j = 0; j < 3; j++) deck.push({ id: 'rev_' + c + '_' + j, type: 'reveal' });
+          for (var k = 0; k < 2; k++) deck.push({ id: 'swp_' + c + '_' + k, type: 'swap' });
+          for (var d = 0; d < 3; d++) deck.push({ id: 'def_' + c + '_' + d, type: 'defense' });
+          for (var n = 0; n < 6; n++) deck.push({ id: 'nrm_' + c + '_' + n, type: 'normal' });
+        }
+        return shuffle(deck);
+      }
+
+      function getCardDef(type) {
+        for (var i = 0; i < CARD_DEFS.length; i++) {
+          if (CARD_DEFS[i].type === type) return CARD_DEFS[i];
+        }
+        return CARD_DEFS[4];
+      }
+
+      /* ================= CORE GAME STATE ================= */
+      var gameState = {
+        active: false,
+        mode: 'bots', // 'bots' | 'multi' | 'pass'
+        difficulty: 'medium',
+        players: [],
+        deck: [],
+        discard: null,
+        currentTurnIndex: 0,
+        roundCount: 1,
+        viewerIndex: 0, // Local player index in bots/multi, or active pass player
+        revealTimerId: null
+      };
+
+      var BOT_NAMES = [
+        'الرائد كريم', 'الأخت حسيبة', 'العربي بن مهيدي', 'زيغود يوسف',
+        'ديدوش مراد', 'مصطفى بن بولعيد', 'لالا فاطمة', 'جميلة بوحيرد',
+        'عميروش', 'سي الحواس', 'عبان رمضان', 'شعباني', 'البطل علي', 'المكلف سليم'
+      ];
+
+      function assignRoles(count) {
+        var n = clampPlayers(count);
+        var roles = [];
+        var evilCount = n <= 5 ? 1 : (n <= 9 ? 2 : (n <= 12 ? 3 : 4));
+        roles.push('traitor');
+        for (var e = 1; e < evilCount; e++) {
+          roles.push(e % 2 === 1 ? 'informant' : 'traitor');
+        }
+        while (roles.length < n) {
+          roles.push(roles.length % 2 === 0 ? 'mujahid' : 'fidai');
+        }
+        return shuffle(roles);
+      }
+
+      function startNewMatch(mode, names, difficulty) {
+        var count = clampPlayers(names.length);
+        var roles = assignRoles(count);
+        var deck = buildDeck(count);
+        var players = [];
+
+        for (var i = 0; i < count; i++) {
+          var hand = [];
+          for (var h = 0; h < 5; h++) {
+            if (deck.length > 0) hand.push(deck.pop());
+          }
+          players.push({
+            id: i,
+            name: names[i] || ('لاعب ' + (i + 1)),
+            isBot: mode === 'bots' ? i > 0 : (names[i] && names[i].indexOf('(روبوت)') !== -1),
+            role: roles[i],
+            hand: hand,
+            shielded: false,
+            eliminated: false
+          });
+        }
+
+        gameState.active = true;
+        gameState.mode = mode;
+        gameState.difficulty = difficulty || 'medium';
+        gameState.players = players;
+        gameState.deck = deck;
+        gameState.discard = null;
+        gameState.currentTurnIndex = 0;
+        gameState.roundCount = 1;
+        gameState.viewerIndex = 0;
+
+        var logEl = document.getElementById('action-log');
+        if (logEl) logEl.innerHTML = '';
+        appendLog('⚔️ بدأت الجولة بمشاركة ' + count + ' لاعبين، وتم توزيع 5 بطاقات لكل لاعب.');
+
+        if (mode === 'pass') {
+          showPassPrivacyGate();
+          speakNarrator('بدأت جولة اللعب على هاتف واحد. يرجى تمرير الجهاز إلى اللاعب الأول ' + players[0].name);
+        } else {
+          showScreen('screen-game');
+          renderGameTable();
+          speakNarrator('مرحباً بكم في طاولة الأوراس. تم توزيع البطاقات السرية. دورك الآن يا ' + players[0].name);
+        }
+        playTone(520, 0.18);
+      }
+
+      function appendLog(msg) {
+        var logEl = document.getElementById('action-log');
+        if (!logEl) return;
+        var p = document.createElement('div');
+        p.textContent = '• ' + msg;
+        logEl.prepend(p);
+      }
+
+      function showPassPrivacyGate() {
+        var current = gameState.players[gameState.currentTurnIndex];
+        if (!current) return;
+        gameState.viewerIndex = gameState.currentTurnIndex;
+        var nameEl = document.getElementById('privacy-player-name');
+        if (nameEl) nameEl.textContent = current.name;
+        showScreen('screen-pass-privacy');
+      }
+
+      function renderGameTable() {
+        if (!gameState.active) return;
+        var players = gameState.players;
+        var viewerIdx = gameState.mode === 'pass' ? gameState.currentTurnIndex : gameState.viewerIndex;
+        var viewer = players[viewerIdx] || players[0];
+        var current = players[gameState.currentTurnIndex] || players[0];
+
+        document.getElementById('hud-mode').textContent =
+          'الوضع: ' + (gameState.mode === 'bots' ? 'ضد الروبوتات' : (gameState.mode === 'multi' ? 'غرفة جماعية' : 'Pass & Play'));
+        document.getElementById('hud-round').textContent = 'الدور: ' + gameState.roundCount;
+        document.getElementById('hud-active-player').textContent = 'الدور الحالي: ' + current.name;
+
+        var roleInfo = ROLES_META[viewer.role];
+        var roleEl = document.getElementById('hud-your-role');
+        roleEl.textContent = 'دورك السري: ' + roleInfo.name;
+        roleEl.className = 'badge ' + (roleInfo.team === 'good' ? 'role-good' : 'role-evil');
+
+        var shieldBadge = document.getElementById('hud-shield-status');
+        shieldBadge.style.display = viewer.shielded ? 'inline-block' : 'none';
+
+        var passBtn = document.getElementById('btn-pass-hide');
+        passBtn.style.display = gameState.mode === 'pass' ? 'inline-block' : 'none';
+
+        document.getElementById('deck-count').textContent = gameState.deck.length;
+        document.getElementById('hand-owner-name').textContent = viewer.name;
+
+        // Render Opponents Ring (all other seats face-down showing "النصر لنا")
+        var ring = document.getElementById('opponents-ring');
+        ring.innerHTML = '';
+        for (var i = 0; i < players.length; i++) {
+          if (i === viewerIdx) continue;
+          var pl = players[i];
+          var seat = document.createElement('div');
+          seat.className = 'seat-card' + (i === gameState.currentTurnIndex ? ' current-turn' : '') + (pl.eliminated ? ' eliminated' : '');
+
+          var backsHtml = '';
+          var showCount = Math.min(pl.hand.length, 8);
+          for (var b = 0; b < showCount; b++) {
+            backsHtml += '<div class="mini-card-back">النصر<br>لنا</div>';
+          }
+
+          seat.innerHTML =
+            '<div class="seat-name">' + pl.name + (pl.shielded ? ' 🛡️' : '') + '</div>' +
+            '<div class="seat-meta">' + (pl.eliminated ? 'مستبعد' : ('البطاقات: ' + pl.hand.length)) + '</div>' +
+            '<div class="mini-backs-row">' + backsHtml + '</div>';
+          ring.appendChild(seat);
+        }
+
+        // Render Discard Pile
+        var discardSlot = document.getElementById('discard-slot');
+        if (gameState.discard) {
+          var dDef = getCardDef(gameState.discard.type);
+          discardSlot.innerHTML =
+            '<div class="game-card type-' + dDef.type + '" style="cursor:default;">' +
+            '<div style="font-weight:900;font-size:0.86rem;">' + dDef.title + '</div>' +
+            dDef.svg +
+            '<div style="font-size:0.7rem;color:#4a3520;">وثيقة ملعوبة</div></div>';
+        } else {
+          discardSlot.innerHTML =
+            '<div class="game-card" style="cursor:default;"><div style="font-weight:800;font-size:0.85rem;">أرشيف اللعب</div><div style="font-size:0.76rem;">لا توجد بطاقة ملعوبة بعد</div><div style="font-size:0.72rem;">النصر لنا</div></div>';
+        }
+
+        // Render Viewer Hand (face-up)
+        var handEl = document.getElementById('player-hand');
+        handEl.innerHTML = '';
+        for (var c = 0; c < viewer.hand.length; c++) {
+          (function (cardObj, cardIndex) {
+            var def = getCardDef(cardObj.type);
+            var cardDiv = document.createElement('div');
+            cardDiv.className = 'game-card type-' + def.type;
+            cardDiv.innerHTML =
+              '<div style="font-weight:900;font-size:0.88rem;">' + def.title + '</div>' +
+              def.svg +
+              '<div style="font-size:0.71rem;line-height:1.3;">' + def.desc.slice(0, 44) + '...</div>';
+            cardDiv.addEventListener('click', function () {
+              handlePlayerCardClick(viewerIdx, cardIndex);
+            });
+            handEl.appendChild(cardDiv);
+          })(viewer.hand[c], c);
+        }
+      }
+
+      function drawOneCard(player) {
+        if (gameState.deck.length === 0) {
+          gameState.deck = buildDeck(gameState.players.length);
+        }
+        if (gameState.deck.length > 0) {
+          player.hand.push(gameState.deck.pop());
+        }
+      }
+
+      function handlePlayerCardClick(playerIdx, cardIndex) {
+        if (!gameState.active) return;
+        var player = gameState.players[playerIdx];
+        if (!player || !player.hand[cardIndex]) return;
+        var card = player.hand[cardIndex];
+        var def = getCardDef(card.type);
+
+        // Always explain card in narrator & audio
+        speakNarrator(def.desc);
+        playTone(620, 0.12);
+
+        if (gameState.currentTurnIndex !== playerIdx) {
+          appendLog('ℹ️ تم عرض شرح بطاقة (' + def.title + '). انتظر دورك للعبها.');
+          return;
+        }
+        if (player.eliminated) return;
+
+        // Play the card
+        if (card.type === 'attack' || card.type === 'reveal') {
+          openTargetSelector(playerIdx, cardIndex, card.type);
+          return;
+        }
+
+        player.hand.splice(cardIndex, 1);
+        gameState.discard = card;
+
+        if (card.type === 'defense') {
+          player.shielded = true;
+          appendLog('🛡️ فعّل ' + player.name + ' بطاقة دفاع (درع) للحماية لدور واحد!');
+        } else if (card.type === 'swap') {
+          executeSwapEffect(player.name);
+        } else {
+          appendLog('📜 لعب ' + player.name + ' بطاقة عادية (' + def.title + ').');
+        }
+
+        checkWinOrAdvance();
+      }
+
+      function openTargetSelector(actorIdx, cardIndex, actionType) {
+        var title = actionType === 'attack' ? '⚔️ اختر هدف بطاقة الهجوم (+2)' : '👁️ اختر لاعباً لكشف دوره (5 ثوانٍ)';
+        var desc = actionType === 'attack'
+          ? 'سيتم إجبار اللاعب المختار على سحب بطاقتين ما لم يكن محمياً بدرع.'
+          : 'سيظهر الدور السري للاعب المختار لك وحدك لمدة 5 ثوانٍ ما لم يكن محمياً بدرع.';
+        if (actionType === 'vote') {
+          title = '⚖️ جلسة التصويت والاتهام';
+          desc = 'صوّت ضد اللاعب الذي تشك بأنه الخائن أو المخبر!';
+        }
+
+        document.getElementById('modal-target-title').textContent = title;
+        document.getElementById('modal-target-desc').textContent = desc;
+        var list = document.getElementById('modal-target-list');
+        list.innerHTML = '';
+
+        for (var i = 0; i < gameState.players.length; i++) {
+          if (i === actorIdx && actionType !== 'vote') continue;
+          var p = gameState.players[i];
+          if (p.eliminated) continue;
+          (function (targetIdx) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = p.name + (p.shielded ? ' 🛡️' : '');
+            btn.addEventListener('click', function () {
+              closeModal('modal-target');
+              if (actionType === 'vote') {
+                resolveVoteAgainst(targetIdx);
+              } else {
+                resolveTargetedCard(actorIdx, cardIndex, targetIdx);
+              }
+            });
+            list.appendChild(btn);
+          })(i);
+        }
+        openModal('modal-target');
+      }
+
+      function resolveTargetedCard(actorIdx, cardIndex, targetIdx) {
+        var actor = gameState.players[actorIdx];
+        var target = gameState.players[targetIdx];
+        var card = actor.hand.splice(cardIndex, 1)[0];
+        gameState.discard = card;
+
+        if (card.type === 'attack') {
+          if (target.shielded) {
+            target.shielded = false;
+            appendLog('🛡️ صدّ ' + target.name + ' هجوم (+2) من ' + actor.name + ' بفضل بطاقة الدفاع!');
+            speakNarrator(target.name + ' محمي ببطاقة دفاع وتم صد الهجوم!');
+          } else {
+            drawOneCard(target);
+            drawOneCard(target);
+            appendLog('⚔️ هاجم ' + actor.name + ' اللاعب ' + target.name + ' وأجبره على سحب بطاقتين (+2)!');
+            speakNarrator('هجوم! سحب ' + target.name + ' بطاقتين.');
+          }
+          checkWinOrAdvance();
+        } else if (card.type === 'reveal') {
+          if (target.shielded) {
+            target.shielded = false;
+            appendLog('🛡️ صدّ ' + target.name + ' محاولة كشف الدور من ' + actor.name + ' بفضل الدرع!');
+            speakNarrator(target.name + ' محمي ببطاقة دفاع! فشل الكشف.');
+            checkWinOrAdvance();
+          } else {
+            appendLog('👁️ استخدم ' + actor.name + ' بطاقة كشف دور على ' + target.name + ' سراً.');
+            showFiveSecondReveal(target, function () {
+              checkWinOrAdvance();
+            });
+          }
+        }
+      }
+
+      function showFiveSecondReveal(target, onDone) {
+        var roleInfo = ROLES_META[target.role];
+        document.getElementById('reveal-target-name').textContent = 'اللاعب: ' + target.name;
+        document.getElementById('reveal-target-role').textContent = 'الدور السري: ' + roleInfo.name;
+        var secs = 5;
+        var cd = document.getElementById('reveal-countdown');
+        cd.textContent = 'يختفي تلقائياً خلال ' + secs + ' ثوانٍ';
+        openModal('modal-reveal');
+
+        if (gameState.revealTimerId) clearInterval(gameState.revealTimerId);
+        gameState.revealTimerId = setInterval(function () {
+          secs--;
+          if (secs <= 0) {
+            clearInterval(gameState.revealTimerId);
+            gameState.revealTimerId = null;
+            closeModal('modal-reveal');
+            if (typeof onDone === 'function') onDone();
+          } else {
+            cd.textContent = 'يختفي تلقائياً خلال ' + secs + ' ثوانٍ';
+          }
+        }, 1000);
+      }
+
+      function executeSwapEffect(actorName) {
+        var alive = [];
+        for (var i = 0; i < gameState.players.length; i++) {
+          if (!gameState.players[i].eliminated) alive.push(gameState.players[i]);
+        }
+        if (alive.length < 2) return;
+        var picks = shuffle(alive);
+        var p1 = picks[0];
+        var p2 = picks[1];
+        var tmp = p1.hand;
+        p1.hand = p2.hand;
+        p2.hand = tmp;
+        appendLog('🔁 فعّل ' + actorName + ' بطاقة تبديل دور! تبادل ' + p1.name + ' و ' + p2.name + ' أوراقهما المتبقية.');
+        speakNarrator('تبديل أوراق مفاجئ بين ' + p1.name + ' و ' + p2.name);
+      }
+
+      function resolveVoteAgainst(suspectIdx) {
+        var suspect = gameState.players[suspectIdx];
+        var roleInfo = ROLES_META[suspect.role];
+        suspect.eliminated = true;
+        appendLog('⚖️ تم التصويت وإقصاء ' + suspect.name + ' — وتبين أن دوره كان: ' + roleInfo.name + '!');
+
+        var evilAlive = 0;
+        var goodAlive = 0;
+        for (var i = 0; i < gameState.players.length; i++) {
+          if (gameState.players[i].eliminated) continue;
+          if (ROLES_META[gameState.players[i].role].team === 'evil') evilAlive++;
+          else goodAlive++;
+        }
+
+        if (evilAlive === 0) {
+          endGame('انتصار خلية المجاهدين والفدائيين!', 'تم كشف وإقصاء جميع الخونة والمخبرين بنجاح.');
+          return;
+        }
+        if (goodAlive <= evilAlive) {
+          endGame('انتصار الخائن والمخبر (المستعمر)!', 'سيطر المتسللون على الخلية بسبب الإقصاءات الخاطئة.');
+          return;
+        }
+        speakNarrator('تم إقصاء ' + suspect.name + ' وكان دوره ' + roleInfo.name);
+        renderGameTable();
+      }
+
+      function checkWinOrAdvance() {
+        // Check if any player emptied their hand
+        for (var i = 0; i < gameState.players.length; i++) {
+          var p = gameState.players[i];
+          if (!p.eliminated && p.hand.length === 0) {
+            var isEvil = ROLES_META[p.role].team === 'evil';
+            endGame(
+              isEvil ? 'انتصار الخائن والمخبر!' : 'النصر لنا — انتصار المجاهدين!',
+              'أنهى ' + p.name + ' (' + ROLES_META[p.role].name + ') جميع بطاقاته أولاً وحسم الجولة!'
+            );
+            return;
+          }
+        }
+
+        // Advance turn to next non-eliminated player
+        var n = gameState.players.length;
+        var nextIdx = gameState.currentTurnIndex;
+        for (var step = 1; step <= n; step++) {
+          var candidate = (gameState.currentTurnIndex + step) % n;
+          if (!gameState.players[candidate].eliminated) {
+            nextIdx = candidate;
+            break;
+          }
+        }
+        if (nextIdx <= gameState.currentTurnIndex) {
+          gameState.roundCount++;
+        }
+        gameState.currentTurnIndex = nextIdx;
+        // Clear shield when their own new turn arrives
+        gameState.players[nextIdx].shielded = false;
+
+        if (gameState.mode === 'multi') broadcastRoomState();
+
+        var nextPlayer = gameState.players[nextIdx];
+        if (gameState.mode === 'pass') {
+          renderGameTable();
+          // Let player click "Hide & Pass" or auto prompt
+          appendLog('➡️ انتهى الدور. اضغط "إخفاء وتسليم الجهاز للاعب التالي" لتمرير الدور إلى ' + nextPlayer.name);
+          return;
+        }
+
+        renderGameTable();
+        if (nextPlayer.isBot) {
+          setTimeout(function () { runBotTurn(nextIdx); }, 900);
+        } else {
+          speakNarrator('دورك الآن يا ' + nextPlayer.name);
+        }
+      }
+
+      function runBotTurn(botIdx) {
+        if (!gameState.active || gameState.currentTurnIndex !== botIdx) return;
+        var bot = gameState.players[botIdx];
+        if (!bot || bot.eliminated) {
+          checkWinOrAdvance();
+          return;
+        }
+
+        if (bot.hand.length === 0) {
+          checkWinOrAdvance();
+          return;
+        }
+
+        // Smart AI decision based on difficulty
+        var pickIdx = 0;
+        if (gameState.difficulty === 'hard' || gameState.difficulty === 'medium') {
+          for (var i = 0; i < bot.hand.length; i++) {
+            if (bot.hand[i].type === 'attack' || bot.hand[i].type === 'defense' || bot.hand[i].type === 'swap') {
+              pickIdx = i;
+              break;
+            }
+          }
+        } else {
+          pickIdx = Math.floor(Math.random() * bot.hand.length);
+        }
+
+        var chosen = bot.hand[pickIdx];
+        if (chosen.type === 'attack') {
+          bot.hand.splice(pickIdx, 1);
+          gameState.discard = chosen;
+          var targets = [];
+          for (var t = 0; t < gameState.players.length; t++) {
+            if (t !== botIdx && !gameState.players[t].eliminated) targets.push(gameState.players[t]);
+          }
+          var victim = targets[Math.floor(Math.random() * targets.length)];
+          if (victim) {
+            if (victim.shielded) {
+              victim.shielded = false;
+              appendLog('🤖 هاجم ' + bot.name + ' اللاعب ' + victim.name + ' لكن الدرع حماه!');
+            } else {
+              drawOneCard(victim);
+              drawOneCard(victim);
+              appendLog('🤖 نفّذ ' + bot.name + ' هجوماً (+2) على ' + victim.name + '!');
+              speakNarrator(bot.name + ' يهاجم ' + victim.name + ' ببطاقة زائد اثنين!');
+            }
+          }
+        } else if (chosen.type === 'defense') {
+          bot.hand.splice(pickIdx, 1);
+          gameState.discard = chosen;
+          bot.shielded = true;
+          appendLog('🤖 فعّل ' + bot.name + ' درع الدفاع.');
+        } else if (chosen.type === 'swap') {
+          bot.hand.splice(pickIdx, 1);
+          gameState.discard = chosen;
+          executeSwapEffect(bot.name);
+        } else if (chosen.type === 'reveal') {
+          bot.hand.splice(pickIdx, 1);
+          gameState.discard = chosen;
+          var accusationTarget = gameState.players[(botIdx + 1) % gameState.players.length];
+          appendLog('🤖 استخدم ' + bot.name + ' بطاقة كشف دور وصرّح: أشك في تحركات ' + accusationTarget.name + '!');
+          speakNarrator(bot.name + ' يقول: انتبهوا، أشك في تحركات ' + accusationTarget.name);
+        } else {
+          bot.hand.splice(pickIdx, 1);
+          gameState.discard = chosen;
+          appendLog('🤖 لعب ' + bot.name + ' وثيقة الأوراس العادية.');
+        }
+
+        checkWinOrAdvance();
+      }
+
+      function endGame(title, summary) {
+        gameState.active = false;
+        document.getElementById('gameover-winner-title').textContent = title;
+        document.getElementById('gameover-summary').textContent = summary;
+        var list = document.getElementById('gameover-roles-reveal');
+        list.innerHTML = '';
+        for (var i = 0; i < gameState.players.length; i++) {
+          var p = gameState.players[i];
+          var r = ROLES_META[p.role];
+          var row = document.createElement('div');
+          row.style.padding = '5px 8px';
+          row.style.borderBottom = '1px solid rgba(212,166,74,0.25)';
+          row.textContent = p.name + ' — ' + r.name + ' (' + p.hand.length + ' بطاقات)';
+          list.appendChild(row);
+        }
+        speakNarrator(title + ' ' + summary);
+        openModal('modal-gameover');
+      }
+
+      /* ================= MULTIPLAYER ROOMS (BroadcastChannel + LocalStorage) ================= */
+      var multiState = {
+        roomCode: '',
+        capacity: 6,
+        myName: 'فدائي 01',
+        isHost: false,
+        ready: false,
+        members: []
+      };
+      var bc = null;
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          bc = new BroadcastChannel('aures_bullet_rooms_v1');
+          bc.onmessage = function (ev) {
+            handleRoomSyncMessage(ev.data);
+          };
+        }
+      } catch (_) {}
+
+      window.addEventListener('storage', function (ev) {
+        try {
+          if (ev.key && ev.key.indexOf('aures_room_') === 0 && ev.newValue) {
+            handleRoomSyncMessage(JSON.parse(ev.newValue));
+          }
+        } catch (_) {}
+      });
+
+      function sendRoomPacket(packet) {
+        try {
+          if (bc) bc.postMessage(packet);
+          if (packet.roomCode) {
+            localStorage.setItem('aures_room_' + packet.roomCode, JSON.stringify(packet));
+          }
+        } catch (_) {}
+      }
+
+      function broadcastRoomState() {
+        if (!multiState.roomCode) return;
+        sendRoomPacket({
+          type: 'game_sync',
+          roomCode: multiState.roomCode,
+          gameState: gameState
+        });
+      }
+
+      function handleRoomSyncMessage(data) {
+        if (!data || !multiState.roomCode || data.roomCode !== multiState.roomCode) return;
+        if (data.type === 'lobby_update' && Array.isArray(data.members)) {
+          multiState.members = data.members;
+          multiState.capacity = clampPlayers(data.capacity || multiState.capacity);
+          renderLobby();
+        } else if (data.type === 'join_request' && multiState.isHost) {
+          var exists = multiState.members.some(function (m) { return m.name === data.name; });
+          if (!exists && multiState.members.length < multiState.capacity) {
+            multiState.members.push({ name: data.name, ready: false });
+          }
+          sendRoomPacket({
+            type: 'lobby_update',
+            roomCode: multiState.roomCode,
+            capacity: multiState.capacity,
+            members: multiState.members
+          });
+          renderLobby();
+        } else if (data.type === 'game_sync' && data.gameState) {
+          gameState = data.gameState;
+          for (var i = 0; i < gameState.players.length; i++) {
+            if (gameState.players[i].name === multiState.myName) {
+              gameState.viewerIndex = i;
+              break;
+            }
+          }
+          showScreen('screen-game');
+          renderGameTable();
+        }
+      }
+
+      function renderLobby() {
+        var box = document.getElementById('room-lobby-box');
+        if (!box) return;
+        box.style.display = 'block';
+        document.getElementById('lobby-room-code').textContent = multiState.roomCode;
+        document.getElementById('lobby-room-cap').textContent = multiState.members.length + ' / ' + multiState.capacity;
+
+        var baseUrl = window.location.href.split('?')[0];
+        document.getElementById('lobby-invite-link').textContent = 'رابط الدعوة: ' + baseUrl + '?room=' + multiState.roomCode;
+
+        var list = document.getElementById('lobby-players-list');
+        list.innerHTML = '';
+        for (var i = 0; i < multiState.members.length; i++) {
+          var m = multiState.members[i];
+          var div = document.createElement('div');
+          div.className = 'seat-card';
+          div.innerHTML = '<strong>' + m.name + '</strong><div style="font-size:0.78rem;color:' + (m.ready ? '#88e070' : '#f2cb72') + '">' + (m.ready ? '✅ جاهز' : '⏳ في الانتظار') + '</div>';
+          list.appendChild(div);
+        }
+      }
+
+      /* ================= PASS & PLAY NAME INPUTS ================= */
+      function generatePassNameFields() {
+        var cntEl = document.getElementById('pass-count');
+        var count = clampPlayers(cntEl ? cntEl.value : 4);
+        if (cntEl) cntEl.value = count;
+        var container = document.getElementById('pass-names-container');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var i = 0; i < count; i++) {
+          var wrap = document.createElement('div');
+          wrap.className = 'field-group';
+          wrap.innerHTML =
+            '<label for="pass-p-' + i + '">اسم اللاعب ' + (i + 1) + ':</label>' +
+            '<input id="pass-p-' + i + '" type="text" value="الرفيق ' + (i + 1) + '" maxlength="20" />';
+          container.appendChild(wrap);
+        }
+      }
+
+      /* ================= STORY & SECRET DOSSIERS ================= */
+      var STORY_CHAPTERS = [
+        {
+          title: '1️⃣ فجر 1 نوفمبر 1954 — اندلاع الثورة من جبال الأوراس',
+          text: 'في منتصف ليلة الفاتح من نوفمبر 1954، دوت الرصاصات الأولى في جبال الأوراس والقبائل والجزائر الكبرى لتعلن ميلاد جبهة التحرير الوطني وبدء الكفاح المسلح ضد الاستعمار.'
+        },
+        {
+          title: '2️⃣ 20 أوت 1956 — مؤتمر الصومام وتنظيم الخلايا السرية',
+          text: 'اجتمعت القيادات الثورية لتوحيد الصفوف وتنظيم الولايات التاريخية الست وبناء شبكات الاستخبارات والتموين وسط الجبال والمدن مع الحذر الشديد من اختراقات المخبرين.'
+        },
+        {
+          title: '3️⃣ 1957 – 1961 — معركة الجزائر وصمود الشعب والجبال',
+          text: 'تلاحم الشعب مع المجاهدين والفدائيين في وجه القمع والحصار، وتحوّلت الوثائق السرية والرسائل المشفرة إلى شريان حياة يحمي أسرار الثورة.'
+        },
+        {
+          title: '4️⃣ 5 جويلية 1962 — شمس الحرية والاستقلال',
+          text: 'بعد تضحيات جسام وبطولات خالدة، انتزع الشعب الجزائري استقلاله وسيادته الكاملة في الخامس من جويلية 1962، ليبقى شعار النصر لنا محفوراً في الذاكرة.'
+        }
+      ];
+
+      var SECRET_DOSSIERS = [
+        {
+          title: 'وثيقة مشفرة #01: شيفرة الأوراس الجبلية',
+          text: 'تحذير إلى قادة الخلايا: تراقبوا من يسارع لاستخدام بطاقة الهجوم دون مبرر أو يتجنب كشف دوره أمام الحلفاء.'
+        },
+        {
+          title: 'وثيقة مشفرة #02: تكتيك درع الدفاع',
+          text: 'احتفظ ببطاقة الدرع للّحظة التي تشتد فيها الاتهامات، فهي تبطل مفعول بطاقة الكشف والهجوم (+2) فوراً.'
+        },
+        {
+          title: 'وثيقة مشفرة #03: أسرار القوائم المخفية',
+          text: 'يقال إن الرمز التاريخي لاندلاع الثورة بصيغة (1/1/1-11-1954) يفتح أرشيفاً سرياً لألعاب استراتيجية قديمة داخل النظام!'
+        }
+      ];
+
+      function renderStoryAndSecrets() {
+        var storyList = document.getElementById('story-chapters-list');
+        if (storyList) {
+          storyList.innerHTML = '';
+          STORY_CHAPTERS.forEach(function (ch) {
+            var card = document.createElement('div');
+            card.className = 'parchment-box';
+            card.innerHTML = '<h4 style="margin-top:0;color:#7a1818;">' + ch.title + '</h4><p style="line-height:1.8;">' + ch.text + '</p>';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn-sm btn-gold';
+            btn.textContent = '🔊 استماع بصوت الراوي';
+            btn.addEventListener('click', function () {
+              speakNarrator(ch.title + '. ' + ch.text);
+            });
+            card.appendChild(btn);
+            storyList.appendChild(card);
+          });
+        }
+
+        var dossGrid = document.getElementById('secret-dossiers-grid');
+        if (dossGrid) {
+          dossGrid.innerHTML = '';
+          SECRET_DOSSIERS.forEach(function (d) {
+            var box = document.createElement('div');
+            box.className = 'vintage-panel';
+            box.innerHTML = '<h4 style="margin-top:0;color:var(--gold-bright);">' + d.title + '</h4><p style="line-height:1.7;">' + d.text + '</p>';
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn-sm';
+            btn.textContent = '🎙️ قراءة الوثيقة';
+            btn.addEventListener('click', function () {
+              speakNarrator(d.title + '. ' + d.text);
+            });
+            box.appendChild(btn);
+            dossGrid.appendChild(box);
+          });
+        }
+      }
+
+      /* ================= SECRET MINI-GAME 1: CHESS ================= */
+      var chessState = {
+        board: [],
+        turn: 'w',
+        selected: null,
+        legalMoves: [],
+        vsBot: true,
+        gameOver: false
+      };
+
+      var CHESS_GLYPHS = {
+        wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
+        bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟'
+      };
+
+      function initChess() {
+        chessState.board = [
+          ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
+          ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP'],
+          [null, null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null, null],
+          ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP'],
+          ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
+        ];
+        chessState.turn = 'w';
+        chessState.selected = null;
+        chessState.legalMoves = [];
+        chessState.gameOver = false;
+        renderChess();
+      }
+
+      function getChessLegalMoves(r, c) {
+        var piece = chessState.board[r][c];
+        if (!piece) return [];
+        var color = piece[0];
+        var type = piece[1];
+        var moves = [];
+
+        function inside(rr, cc) { return rr >= 0 && rr < 8 && cc >= 0 && cc < 8; }
+        function addSlide(dr, dc) {
+          var nr = r + dr, nc = c + dc;
+          while (inside(nr, nc)) {
+            var target = chessState.board[nr][nc];
+            if (!target) {
+              moves.push([nr, nc]);
+            } else {
+              if (target[0] !== color) moves.push([nr, nc]);
+              break;
+            }
+            nr += dr;
+            nc += dc;
+          }
+        }
+
+        if (type === 'P') {
+          var dir = color === 'w' ? -1 : 1;
+          var startRow = color === 'w' ? 6 : 1;
+          if (inside(r + dir, c) && !chessState.board[r + dir][c]) {
+            moves.push([r + dir, c]);
+            if (r === startRow && !chessState.board[r + dir * 2][c]) {
+              moves.push([r + dir * 2, c]);
+            }
+          }
+          [-1, 1].forEach(function (dc) {
+            if (inside(r + dir, c + dc)) {
+              var cap = chessState.board[r + dir][c + dc];
+              if (cap && cap[0] !== color) moves.push([r + dir, c + dc]);
+            }
+          });
+        } else if (type === 'R') {
+          addSlide(1, 0); addSlide(-1, 0); addSlide(0, 1); addSlide(0, -1);
+        } else if (type === 'B') {
+          addSlide(1, 1); addSlide(1, -1); addSlide(-1, 1); addSlide(-1, -1);
+        } else if (type === 'Q') {
+          addSlide(1, 0); addSlide(-1, 0); addSlide(0, 1); addSlide(0, -1);
+          addSlide(1, 1); addSlide(1, -1); addSlide(-1, 1); addSlide(-1, -1);
+        } else if (type === 'N') {
+          [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(function (d) {
+            var nr = r + d[0], nc = c + d[1];
+            if (inside(nr, nc)) {
+              var t = chessState.board[nr][nc];
+              if (!t || t[0] !== color) moves.push([nr, nc]);
+            }
+          });
+        } else if (type === 'K') {
+          for (var dr = -1; dr <= 1; dr++) {
+            for (var dc = -1; dc <= 1; dc++) {
+              if (dr === 0 && dc === 0) continue;
+              var nr = r + dr, nc = c + dc;
+              if (inside(nr, nc)) {
+                var t = chessState.board[nr][nc];
+                if (!t || t[0] !== color) moves.push([nr, nc]);
+              }
+            }
+          }
+        }
+        return moves;
+      }
+
+      function executeChessMove(fr, fc, tr, tc) {
+        var piece = chessState.board[fr][fc];
+        var captured = chessState.board[tr][tc];
+        chessState.board[tr][tc] = piece;
+        chessState.board[fr][fc] = null;
+
+        // Pawn promotion
+        if (piece === 'wP' && tr === 0) chessState.board[tr][tc] = 'wQ';
+        if (piece === 'bP' && tr === 7) chessState.board[tr][tc] = 'bQ';
+
+        chessState.selected = null;
+        chessState.legalMoves = [];
+
+        if (captured && captured[1] === 'K') {
+          chessState.gameOver = true;
+          document.getElementById('chess-status-msg').textContent =
+            '🏆 انتهت المباراة! فاز ' + (chessState.turn === 'w' ? 'الأبيض' : 'الأسود') + ' بأسر الملك!';
+          renderChess();
+          return;
+        }
+
+        chessState.turn = chessState.turn === 'w' ? 'b' : 'w';
+        renderChess();
+
+        if (chessState.vsBot && chessState.turn === 'b' && !chessState.gameOver) {
+          setTimeout(runChessBot, 400);
+        }
+      }
+
+      function runChessBot() {
+        var allMoves = [];
+        for (var r = 0; r < 8; r++) {
+          for (var c = 0; c < 8; c++) {
+            var p = chessState.board[r][c];
+            if (p && p[0] === 'b') {
+              var ms = getChessLegalMoves(r, c);
+              ms.forEach(function (m) {
+                var score = chessState.board[m[0]][m[1]] ? 10 : 1;
+                allMoves.push({ fr: r, fc: c, tr: m[0], tc: m[1], score: score });
+              });
+            }
+          }
+        }
+        if (allMoves.length === 0) {
+          chessState.gameOver = true;
+          document.getElementById('chess-status-msg').textContent = 'انتهت اللعبة: لا حركات متاحة للأسود.';
+          return;
+        }
+        allMoves.sort(function (a, b) { return b.score - a.score; });
+        var topScore = allMoves[0].score;
+        var best = allMoves.filter(function (m) { return m.score === topScore; });
+        var pick = best[Math.floor(Math.random() * best.length)];
+        executeChessMove(pick.fr, pick.fc, pick.tr, pick.tc);
+      }
+
+      function renderChess() {
+        var boardEl = document.getElementById('chess-board');
+        if (!boardEl) return;
+        boardEl.innerHTML = '';
+        document.getElementById('chess-turn-label').textContent = 'الدور: ' + (chessState.turn === 'w' ? 'الأبيض' : 'الأسود');
+
+        for (var r = 0; r < 8; r++) {
+          for (var c = 0; c < 8; c++) {
+            (function (rr, cc) {
+              var cell = document.createElement('button');
+              cell.type = 'button';
+              var isLight = (rr + cc) % 2 === 0;
+              var isSel = chessState.selected && chessState.selected[0] === rr && chessState.selected[1] === cc;
+              var isLeg = chessState.legalMoves.some(function (m) { return m[0] === rr && m[1] === cc; });
+
+              cell.className = 'chess-cell ' + (isLight ? 'light' : 'dark') + (isSel ? ' selected' : '') + (isLeg ? ' legal' : '');
+              var p = chessState.board[rr][cc];
+              cell.textContent = p ? CHESS_GLYPHS[p] : '';
+
+              cell.addEventListener('click', function () {
+                if (chessState.gameOver) return;
+                if (chessState.vsBot && chessState.turn === 'b') return;
+
+                if (chessState.selected) {
+                  var valid = chessState.legalMoves.some(function (m) { return m[0] === rr && m[1] === cc; });
+                  if (valid) {
+                    executeChessMove(chessState.selected[0], chessState.selected[1], rr, cc);
+                    return;
+                  }
+                }
+                var clickedPiece = chessState.board[rr][cc];
+                if (clickedPiece && clickedPiece[0] === chessState.turn) {
+                  chessState.selected = [rr, cc];
+                  chessState.legalMoves = getChessLegalMoves(rr, cc);
+                } else {
+                  chessState.selected = null;
+                  chessState.legalMoves = [];
+                }
+                renderChess();
+              });
+              boardEl.appendChild(cell);
+            })(r, c);
+          }
+        }
+      }
+
+      /* ================= SECRET MINI-GAME 2: DOMINO ================= */
+      var dominoState = {
+        boneyard: [],
+        chain: [],
+        playerHand: [],
+        aiHand: [],
+        playerScore: 0,
+        aiScore: 0,
+        turn: 'player',
+        over: false
+      };
+
+      function initDominoRound() {
+        var tiles = [];
+        for (var i = 0; i <= 6; i++) {
+          for (var j = i; j <= 6; j++) {
+            tiles.push([i, j]);
+          }
+        }
+        tiles = shuffle(tiles);
+        dominoState.playerHand = tiles.slice(0, 7);
+        dominoState.aiHand = tiles.slice(7, 14);
+        dominoState.boneyard = tiles.slice(14);
+        dominoState.chain = [];
+        dominoState.turn = 'player';
+        dominoState.over = false;
+        document.getElementById('domino-status').textContent = 'دورك: اختر أي قطعة لتبدأ السلسلة.';
+        renderDomino();
+      }
+
+      function dominoEnds() {
+        if (dominoState.chain.length === 0) return null;
+        return {
+          left: dominoState.chain[0][0],
+          right: dominoState.chain[dominoState.chain.length - 1][1]
+        };
+      }
+
+      function canPlaceDomino(tile) {
+        var ends = dominoEnds();
+        if (!ends) return 'left';
+        if (tile[1] === ends.left || tile[0] === ends.left) return 'left';
+        if (tile[0] === ends.right || tile[1] === ends.right) return 'right';
+        return null;
+      }
+
+      function placeDominoTile(hand, idx, side) {
+        var tile = hand.splice(idx, 1)[0];
+        var ends = dominoEnds();
+        if (!ends) {
+          dominoState.chain.push(tile);
+          return;
+        }
+        if (side === 'left') {
+          if (tile[1] === ends.left) dominoState.chain.unshift([tile[0], tile[1]]);
+          else dominoState.chain.unshift([tile[1], tile[0]]);
+        } else {
+          if (tile[0] === ends.right) dominoState.chain.push([tile[0], tile[1]]);
+          else dominoState.chain.push([tile[1], tile[0]]);
+        }
+      }
+
+      function checkDominoWinner() {
+        if (dominoState.playerHand.length === 0) {
+          dominoState.over = true;
+          dominoState.playerScore += 10;
+          document.getElementById('domino-status').textContent = '🏆 فزت بالجولة! (+10 نقاط)';
+          renderDomino();
+          return true;
+        }
+        if (dominoState.aiHand.length === 0) {
+          dominoState.over = true;
+          dominoState.aiScore += 10;
+          document.getElementById('domino-status').textContent = '🤖 فاز الخصم بهذه الجولة! (+10 نقاط للخصم)';
+          renderDomino();
+          return true;
+        }
+        return false;
+      }
+
+      function runDominoAi() {
+        if (dominoState.over) return;
+        for (var i = 0; i < dominoState.aiHand.length; i++) {
+          var side = canPlaceDomino(dominoState.aiHand[i]);
+          if (side) {
+            placeDominoTile(dominoState.aiHand, i, side);
+            if (!checkDominoWinner()) {
+              dominoState.turn = 'player';
+              document.getElementById('domino-status').textContent = 'لعب الخصم قطعة. دورك الآن!';
+              renderDomino();
+            }
+            return;
+          }
+        }
+        if (dominoState.boneyard.length > 0) {
+          dominoState.aiHand.push(dominoState.boneyard.pop());
+          setTimeout(runDominoAi, 350);
+          renderDomino();
+        } else {
+          dominoState.turn = 'player';
+          document.getElementById('domino-status').textContent = 'مرر الخصم دوره لعدم وجود تطابق. دورك!';
+          renderDomino();
+        }
+      }
+
+      function renderDomino() {
+        document.getElementById('domino-score-badge').textContent =
+          'نقاطك: ' + dominoState.playerScore + ' | الخصم: ' + dominoState.aiScore;
+        document.getElementById('domino-boneyard-badge').textContent = 'الكومة: ' + dominoState.boneyard.length;
+        document.getElementById('domino-ai-count').textContent = dominoState.aiHand.length;
+
+        var board = document.getElementById('domino-board');
+        board.innerHTML = '';
+        if (dominoState.chain.length === 0) {
+          board.innerHTML = '<span style="color:#b8d4b0;">الطاولة فارغة — ضع أول قطعة</span>';
+        } else {
+          dominoState.chain.forEach(function (t) {
+            var el = document.createElement('div');
+            el.className = 'domino-tile';
+            el.style.cursor = 'default';
+            el.innerHTML = '<span>' + t[0] + '</span><span class="sep"></span><span>' + t[1] + '</span>';
+            board.appendChild(el);
+          });
+        }
+
+        var handEl = document.getElementById('domino-player-hand');
+        handEl.innerHTML = '';
+        dominoState.playerHand.forEach(function (t, idx) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'domino-tile';
+          btn.innerHTML = '<span>' + t[0] + '</span><span class="sep"></span><span>' + t[1] + '</span>';
+          btn.addEventListener('click', function () {
+            if (dominoState.over || dominoState.turn !== 'player') return;
+            var side = canPlaceDomino(t);
+            if (!side) {
+              document.getElementById('domino-status').textContent = 'هذه القطعة لا تطابق طرفي السلسلة! اسحب من الكومة.';
+              return;
+            }
+            placeDominoTile(dominoState.playerHand, idx, side);
+            if (!checkDominoWinner()) {
+              dominoState.turn = 'ai';
+              document.getElementById('domino-status').textContent = 'دور الخصم...';
+              renderDomino();
+              setTimeout(runDominoAi, 550);
+            }
+          });
+          handEl.appendChild(btn);
+        });
+      }
+
+      /* ================= SECRET MINI-GAME 3: FOOTBALL (STRICTLY 16 TEAMS & 3 MENUS) ================= */
+      var FOOTBALL_TEAMS = [
+        { id: 1, name: 'نسور الأوراس', color: '#c62828' },
+        { id: 2, name: 'أبطال جرجرة', color: '#2e7d32' },
+        { id: 3, name: 'فرسان الصحراء', color: '#ef6c00' },
+        { id: 4, name: 'شباب القصبة', color: '#1565c0' },
+        { id: 5, name: 'أسود وهران', color: '#b71c1c' },
+        { id: 6, name: 'صقور قسنطينة', color: '#00695c' },
+        { id: 7, name: 'نمور بجاية', color: '#6a1b9a' },
+        { id: 8, name: 'نسور عنابة', color: '#ad1457' },
+        { id: 9, name: 'فرسان تلمسان', color: '#0277bd' },
+        { id: 10, name: 'أبطال سطيف', color: '#283593' },
+        { id: 11, name: 'صقور بسكرة', color: '#d84315' },
+        { id: 12, name: 'شباب غرداية', color: '#558b2f' },
+        { id: 13, name: 'نجوم تيزي وزو', color: '#f9a825' },
+        { id: 14, name: 'أبطال باتنة', color: '#4e342e' },
+        { id: 15, name: 'فرسان تمنراست', color: '#8e24aa' },
+        { id: 16, name: 'طلائع الجزائر', color: '#1b5e20' }
+      ];
+
+      var fbState = {
+        selectedTeamIdx: 0,
+        rivalTeamIdx: 4,
+        running: false,
+        timer: 60,
+        scorePlayer: 0,
+        scoreAi: 0,
+        loopId: null,
+        secId: null,
+        player: { x: 140, y: 160, vx: 0, vy: 0 },
+        mate: { x: 200, y: 95 },
+        ai: { x: 410, y: 160 },
+        ball: { x: 280, y: 160, vx: 0, vy: 0 }
+      };
+
+      function showFootballMenu(menuName) {
+        document.getElementById('fb-view-play').style.display = menuName === 'play' ? 'block' : 'none';
+        document.getElementById('fb-view-settings').style.display = menuName === 'settings' ? 'block' : 'none';
+        document.getElementById('fb-view-teams').style.display = menuName === 'teams' ? 'block' : 'none';
+      }
+
+      function renderFootballTeams() {
+        var grid = document.getElementById('fb-teams-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        FOOTBALL_TEAMS.forEach(function (team, idx) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'team-card-btn' + (idx === fbState.selectedTeamIdx ? ' selected-team' : '');
+          btn.innerHTML =
+            '<span style="display:inline-block;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:' + team.color + '"></span>' +
+            '<strong>' + team.name + '</strong>' +
+            '<span style="font-size:0.74rem;color:#d6be8e;">منتخب #' + team.id + '</span>';
+          btn.addEventListener('click', function () {
+            fbState.selectedTeamIdx = idx;
+            fbState.rivalTeamIdx = (idx + 5) % FOOTBALL_TEAMS.length;
+            renderFootballTeams();
+            updateFootballHUD();
+            drawFootballField();
+          });
+          grid.appendChild(btn);
+        });
+      }
+
+      function updateFootballHUD() {
+        var myTeam = FOOTBALL_TEAMS[fbState.selectedTeamIdx];
+        var rival = FOOTBALL_TEAMS[fbState.rivalTeamIdx];
+        document.getElementById('fb-match-teams').textContent = myTeam.name + ' 🆚 ' + rival.name;
+        document.getElementById('fb-match-score').textContent = 'النتيجة: ' + fbState.scorePlayer + ' - ' + fbState.scoreAi;
+        document.getElementById('fb-match-timer').textContent = 'الوقت: ' + fbState.timer + 'ث';
+      }
+
+      function startFootballMatch() {
+        var durEl = document.getElementById('fb-set-duration');
+        fbState.timer = parseInt(durEl ? durEl.value : '60', 10) || 60;
+        fbState.scorePlayer = 0;
+        fbState.scoreAi = 0;
+        fbState.running = true;
+        resetFootballPositions();
+        updateFootballHUD();
+
+        if (fbState.loopId) clearInterval(fbState.loopId);
+        if (fbState.secId) clearInterval(fbState.secId);
+
+        fbState.loopId = setInterval(stepFootball, 33);
+        fbState.secId = setInterval(function () {
+          if (!fbState.running) return;
+          fbState.timer--;
+          if (fbState.timer <= 0) {
+            fbState.timer = 0;
+            fbState.running = false;
+            clearInterval(fbState.loopId);
+            clearInterval(fbState.secId);
+            updateFootballHUD();
+            drawFootballField();
+            return;
+          }
+          updateFootballHUD();
+        }, 1000);
+      }
+
+      function resetFootballPositions() {
+        fbState.player = { x: 150, y: 160, vx: 0, vy: 0 };
+        fbState.mate = { x: 220, y: 85 };
+        fbState.ai = { x: 400, y: 160 };
+        fbState.ball = { x: 280, y: 160, vx: 0, vy: 0 };
+      }
+
+      function moveFbPlayer(dx, dy) {
+        fbState.player.x = Math.max(22, Math.min(538, fbState.player.x + dx));
+        fbState.player.y = Math.max(22, Math.min(298, fbState.player.y + dy));
+      }
+
+      function kickFbBall(powerX, powerY) {
+        var dist = Math.hypot(fbState.ball.x - fbState.player.x, fbState.ball.y - fbState.player.y);
+        if (dist < 42) {
+          fbState.ball.vx = powerX;
+          fbState.ball.vy = powerY;
+          if (document.getElementById('fb-set-sound').value === 'on') playTone(320, 0.08);
+        }
+      }
+
+      function stepFootball() {
+        if (!fbState.running) return;
+        var diff = document.getElementById('fb-set-difficulty').value;
+        var aiSpeed = diff === 'hard' ? 3.2 : (diff === 'medium' ? 2.2 : 1.4);
+
+        // Player dribble contact
+        var dp = Math.hypot(fbState.ball.x - fbState.player.x, fbState.ball.y - fbState.player.y);
+        if (dp < 20) {
+          fbState.ball.vx = 3.2;
+          fbState.ball.vy = (fbState.ball.y - fbState.player.y) * 0.25;
+        }
+
+        // AI chase ball & shoot left
+        var ang = Math.atan2(fbState.ball.y - fbState.ai.y, fbState.ball.x - fbState.ai.x);
+        fbState.ai.x += Math.cos(ang) * aiSpeed;
+        fbState.ai.y += Math.sin(ang) * aiSpeed;
+        if (Math.hypot(fbState.ball.x - fbState.ai.x, fbState.ball.y - fbState.ai.y) < 20) {
+          fbState.ball.vx = -5.4;
+          fbState.ball.vy = (160 - fbState.ball.y) * 0.06;
+        }
+
+        // Move ball
+        fbState.ball.x += fbState.ball.vx;
+        fbState.ball.y += fbState.ball.vy;
+        fbState.ball.vx *= 0.96;
+        fbState.ball.vy *= 0.96;
+
+        // Bounce walls except goals
+        if (fbState.ball.y < 14 || fbState.ball.y > 306) fbState.ball.vy *= -1;
+        // Goal check (y between 110 and 210)
+        if (fbState.ball.x >= 546 && fbState.ball.y >= 110 && fbState.ball.y <= 210) {
+          fbState.scorePlayer++;
+          updateFootballHUD();
+          resetFootballPositions();
+        } else if (fbState.ball.x <= 14 && fbState.ball.y >= 110 && fbState.ball.y <= 210) {
+          fbState.scoreAi++;
+          updateFootballHUD();
+          resetFootballPositions();
+        } else {
+          if (fbState.ball.x < 14 || fbState.ball.x > 546) fbState.ball.vx *= -1;
+        }
+
+        drawFootballField();
+      }
+
+      function drawFootballField() {
+        var canvas = document.getElementById('football-canvas');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+        var myTeam = FOOTBALL_TEAMS[fbState.selectedTeamIdx];
+        var rival = FOOTBALL_TEAMS[fbState.rivalTeamIdx];
+
+        // Grass stripes
+        ctx.fillStyle = '#1f5f28';
+        ctx.fillRect(0, 0, 560, 320);
+        ctx.fillStyle = '#256e2f';
+        for (var x = 0; x < 560; x += 70) {
+          ctx.fillRect(x, 0, 35, 320);
+        }
+
+        // Pitch lines
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(12, 12, 536, 296);
+        ctx.beginPath();
+        ctx.moveTo(280, 12);
+        ctx.lineTo(280, 308);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(280, 160, 42, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Goals
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.fillRect(2, 110, 10, 100);
+        ctx.fillRect(548, 110, 10, 100);
+
+        // Players
+        ctx.fillStyle = myTeam.color;
+        ctx.beginPath();
+        ctx.arc(fbState.player.x, fbState.player.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(fbState.mate.x, fbState.mate.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = rival.color;
+        ctx.beginPath();
+        ctx.arc(fbState.ai.x, fbState.ai.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ball
+        ctx.fillStyle = '#fff9e6';
+        ctx.beginPath();
+        ctx.arc(fbState.ball.x, fbState.ball.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#111';
+        ctx.stroke();
+
+        if (!fbState.running && fbState.timer === 0) {
+          ctx.fillStyle = 'rgba(0,0,0,0.65)';
+          ctx.fillRect(120, 120, 320, 80);
+          ctx.fillStyle = '#f2cb72';
+          ctx.font = 'bold 20px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('نهاية المباراة: ' + fbState.scorePlayer + ' - ' + fbState.scoreAi, 280, 168);
+        }
+      }
+
+      /* ================= BIND ALL BUTTONS SAFELY IN DOMContentLoaded ================= */
+      document.addEventListener('DOMContentLoaded', function () {
+        renderStoryAndSecrets();
+        generatePassNameFields();
+        renderFootballTeams();
+        updateFootballHUD();
+        drawFootballField();
+        updateVoiceBarUI();
+
+        // Main Menu Buttons
+        onClick('btn-new-game', function () {
+          var count = clampPlayers(document.getElementById('bots-count').value || 6);
+          var name = (document.getElementById('bots-player-name').value || 'القائد طارق').trim();
+          var names = [name];
+          for (var i = 1; i < count; i++) names.push(BOT_NAMES[(i - 1) % BOT_NAMES.length]);
+          startNewMatch('bots', names, 'medium');
+        });
+
+        onClick('btn-mode-bots', function () { showScreen('screen-setup-bots'); });
+        onClick('btn-mode-multi', function () { showScreen('screen-setup-multi'); });
+        onClick('btn-mode-pass', function () {
+          generatePassNameFields();
+          showScreen('screen-setup-pass');
+        });
+        onClick('btn-story', function () { showScreen('screen-story'); });
+        onClick('btn-secrets', function () { showScreen('screen-secrets'); });
+        onClick('btn-secret-code-open', function () {
+          document.getElementById('secret-code-msg').textContent = '';
+          openModal('modal-secret-code');
+        });
+        onClick('btn-guide', function () { openModal('modal-guide'); });
+        onClick('btn-sound-settings', function () { openModal('modal-settings'); });
+        onClick('btn-about', function () { openModal('modal-about'); });
+        onClick('btn-mini-ads-open', function () { openModal('modal-mini-ads'); });
+        onClick('btn-open-mini-ads-top', function () { openModal('modal-mini-ads'); });
+
+        // Back Buttons
+        onClick('btn-back-from-bots', function () { showScreen('screen-home'); });
+        onClick('btn-back-from-multi', function () { showScreen('screen-home'); });
+        onClick('btn-back-from-pass', function () { showScreen('screen-home'); });
+        onClick('btn-back-from-story', function () { showScreen('screen-home'); });
+        onClick('btn-back-from-secrets', function () { showScreen('screen-home'); });
+        onClick('btn-back-from-secret-games', function () { showScreen('screen-home'); });
+        onClick('btn-game-exit', function () {
+          gameState.active = false;
+          showScreen('screen-home');
+        });
+        onClick('btn-gameover-home', function () {
+          closeModal('modal-gameover');
+          showScreen('screen-home');
+        });
+
+        // Close Modal X Buttons
+        onClick('close-modal-guide', function () { closeModal('modal-guide'); });
+        onClick('close-modal-settings', function () { closeModal('modal-settings'); });
+        onClick('close-modal-about', function () { closeModal('modal-about'); });
+        onClick('close-modal-secret-code', function () { closeModal('modal-secret-code'); });
+        onClick('close-modal-mini-ads', function () { closeModal('modal-mini-ads'); });
+        onClick('close-modal-target', function () { closeModal('modal-target'); });
+        onClick('close-modal-reveal', function () {
+          if (gameState.revealTimerId) clearInterval(gameState.revealTimerId);
+          closeModal('modal-reveal');
+          checkWinOrAdvance();
+        });
+        onClick('close-modal-gameover', function () { closeModal('modal-gameover'); });
+
+        // Voice Bar Controls
+        onClick('btn-voice-mic', function () {
+          audioSettings.micOn = !audioSettings.micOn;
+          updateVoiceBarUI();
+        });
+        onClick('btn-voice-speaker', function () {
+          audioSettings.speakerOn = !audioSettings.speakerOn;
+          if (!audioSettings.speakerOn && window.speechSynthesis) window.speechSynthesis.cancel();
+          updateVoiceBarUI();
+        });
+        onClick('btn-voice-leave', function () {
+          audioSettings.inCall = !audioSettings.inCall;
+          if (!audioSettings.inCall && window.speechSynthesis) window.speechSynthesis.cancel();
+          updateVoiceBarUI();
+        });
+
+        // Ad Banner & Mini Ads Controls
+        onClick('btn-close-ad-banner', function () {
+          document.getElementById('ad-banner-wrap').classList.add('hidden-ad');
+        });
+        onClick('btn-toggle-top-banner', function () {
+          document.getElementById('ad-banner-wrap').classList.toggle('hidden-ad');
+        });
+        onClick('btn-apply-ad-settings', function () {
+          var provider = document.getElementById('ad-provider-select').value;
+          var customText = document.getElementById('ad-custom-text').value.trim();
+          var bannerMsg = document.getElementById('ad-banner-msg');
+          var preview = document.getElementById('mini-ad-preview-text');
+          if (provider === 'none') {
+            bannerMsg.textContent = 'لم يتم ربط شيفرة إعلانية خارجية بعد — حاوية نظيفة بدون إعلانات مضللة.';
+            preview.textContent = bannerMsg.textContent;
+          } else if (provider === 'adsense') {
+            bannerMsg.textContent = 'حاوية Google AdSense مهيأة (' + (customText || 'بانتظار معرف الناشر ca-pub عند النشر') + ').';
+            preview.textContent = bannerMsg.textContent;
+          } else {
+            bannerMsg.textContent = customText || 'رعاية رسمية — تامر Tteam © 2026';
+            preview.textContent = bannerMsg.textContent;
+          }
+          document.getElementById('ad-banner-wrap').classList.remove('hidden-ad');
+        });
+
+        // Sound Settings
+        onClick('btn-test-narrator', function () {
+          audioSettings.narrator = document.getElementById('opt-narrator-enabled').value === 'on';
+          audioSettings.sfx = document.getElementById('opt-sfx-enabled').value === 'on';
+          speakNarrator('مرحباً بكم في لعبة رصاصة الأوراس من تطوير تامر تيم. الصوت يعمل بنجاح!');
+        });
+
+        var narSelect = document.getElementById('opt-narrator-enabled');
+        if (narSelect) narSelect.addEventListener('change', function () {
+          audioSettings.narrator = narSelect.value === 'on';
+        });
+        var sfxSelect = document.getElementById('opt-sfx-enabled');
+        if (sfxSelect) sfxSelect.addEventListener('change', function () {
+          audioSettings.sfx = sfxSelect.value === 'on';
+        });
+
+        // Setup Bots Start
+        onClick('btn-start-bots', function () {
+          var countEl = document.getElementById('bots-count');
+          var count = clampPlayers(countEl.value);
+          countEl.value = count;
+          var pName = (document.getElementById('bots-player-name').value || 'القائد طارق').trim();
+          var diff = document.getElementById('bots-difficulty').value;
+          var names = [pName];
+          for (var i = 1; i < count; i++) {
+            names.push(BOT_NAMES[(i - 1) % BOT_NAMES.length]);
+          }
+          startNewMatch('bots', names, diff);
+        });
+
+        // Setup Pass & Play
+        onClick('btn-generate-pass-names', generatePassNameFields);
+        onClick('btn-start-pass', function () {
+          var countEl = document.getElementById('pass-count');
+          var count = clampPlayers(countEl.value);
+          countEl.value = count;
+          var names = [];
+          for (var i = 0; i < count; i++) {
+            var inp = document.getElementById('pass-p-' + i);
+            names.push((inp && inp.value.trim()) ? inp.value.trim() : ('الرفيق ' + (i + 1)));
+          }
+          startNewMatch('pass', names, 'medium');
+        });
+
+        onClick('btn-privacy-reveal', function () {
+          showScreen('screen-game');
+          renderGameTable();
+          var cur = gameState.players[gameState.currentTurnIndex];
+          if (cur) speakNarrator('أهلاً بك يا ' + cur.name + '. دورك السري وبطاقاتك جاهزة.');
+        });
+
+        onClick('btn-pass-hide', function () {
+          showPassPrivacyGate();
+        });
+
+        // Setup Multiplayer Rooms
+        onClick('btn-create-room', function () {
+          var capEl = document.getElementById('multi-capacity');
+          var cap = clampPlayers(capEl.value);
+          capEl.value = cap;
+          var name = (document.getElementById('multi-player-name').value || 'فدائي 01').trim();
+          var code = 'AUR-' + Math.floor(1000 + Math.random() * 9000);
+          multiState.roomCode = code;
+          multiState.capacity = cap;
+          multiState.myName = name;
+          multiState.isHost = true;
+          multiState.ready = true;
+          multiState.members = [{ name: name, ready: true }];
+          document.getElementById('multi-join-code').value = code;
+          document.getElementById('multi-sync-status').textContent = 'متصل بالغرفة ' + code + ' (مضيف الغرفة — مزامنة فورية نشطة)';
+          sendRoomPacket({ type: 'lobby_update', roomCode: code, capacity: cap, members: multiState.members });
+          renderLobby();
+        });
+
+        onClick('btn-join-room', function () {
+          var code = (document.getElementById('multi-join-code').value || '').trim().toUpperCase();
+          var name = (document.getElementById('multi-player-name').value || 'فدائي منضم').trim();
+          if (!code) {
+            document.getElementById('multi-sync-status').textContent = 'يرجى إدخال رمز غرفة صحيح أولاً.';
+            return;
+          }
+          multiState.roomCode = code;
+          multiState.myName = name;
+          multiState.isHost = false;
+          try {
+            var saved = localStorage.getItem('aures_room_' + code);
+            if (saved) {
+              var parsed = JSON.parse(saved);
+              if (Array.isArray(parsed.members)) multiState.members = parsed.members;
+              if (parsed.capacity) multiState.capacity = clampPlayers(parsed.capacity);
+            }
+          } catch (_) {}
+          if (!multiState.members.some(function (m) { return m.name === name; })) {
+            multiState.members.push({ name: name, ready: false });
+          }
+          sendRoomPacket({ type: 'join_request', roomCode: code, name: name });
+          document.getElementById('multi-sync-status').textContent = 'تم الانضمام إلى الغرفة ' + code + ' بنجاح.';
+          renderLobby();
+        });
+
+        onClick('btn-copy-room', function () {
+          if (!multiState.roomCode) {
+            document.getElementById('multi-sync-status').textContent = 'أنشئ غرفة أولاً لنسخ الرمز ورابط الدعوة.';
+            return;
+          }
+          var url = window.location.href.split('?')[0] + '?room=' + multiState.roomCode;
+          var txt = 'انضم لغرفتي في Aures Bullet برمز: ' + multiState.roomCode + ' عبر الرابط: ' + url;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(txt).catch(function () {});
+          }
+          document.getElementById('multi-sync-status').textContent = 'تم نسخ رمز الغرفة ورابط الدعوة: ' + multiState.roomCode;
+        });
+
+        onClick('btn-toggle-ready', function () {
+          multiState.ready = !multiState.ready;
+          multiState.members.forEach(function (m) {
+            if (m.name === multiState.myName) m.ready = multiState.ready;
+          });
+          sendRoomPacket({
+            type: 'lobby_update',
+            roomCode: multiState.roomCode,
+            capacity: multiState.capacity,
+            members: multiState.members
+          });
+          renderLobby();
+        });
+
+        onClick('btn-fill-bots-room', function () {
+          var targetCap = clampPlayers(multiState.capacity);
+          var idx = 0;
+          while (multiState.members.length < targetCap) {
+            multiState.members.push({ name: BOT_NAMES[idx % BOT_NAMES.length] + ' (روبوت)', ready: true });
+            idx++;
+          }
+          sendRoomPacket({
+            type: 'lobby_update',
+            roomCode: multiState.roomCode,
+            capacity: targetCap,
+            members: multiState.members
+          });
+          renderLobby();
+        });
+
+        onClick('btn-start-room-game', function () {
+          if (multiState.members.length < 4) {
+            document.getElementById('multi-sync-status').textContent = 'الحد الأدنى لبدء الغرفة هو 4 لاعبين! يمكنك إكمال المقاعد بروبوتات.';
+            return;
+          }
+          var names = multiState.members.slice(0, 15).map(function (m) { return m.name; });
+          startNewMatch('multi', names, 'medium');
+          for (var i = 0; i < gameState.players.length; i++) {
+            if (gameState.players[i].name === multiState.myName) gameState.viewerIndex = i;
+          }
+          broadcastRoomState();
+          renderGameTable();
+        });
+
+        // In-Game Actions
+        function doDrawCard() {
+          if (!gameState.active) return;
+          var cur = gameState.players[gameState.currentTurnIndex];
+          var viewerIdx = gameState.mode === 'pass' ? gameState.currentTurnIndex : gameState.viewerIndex;
+          if (gameState.currentTurnIndex !== viewerIdx) {
+            appendLog('⏳ انتظر دورك لسحب بطاقة.');
+            return;
+          }
+          drawOneCard(cur);
+          appendLog('🃏 سحب ' + cur.name + ' بطاقة من كومة النصر لنا.');
+          speakNarrator(cur.name + ' سحب بطاقة وتنتقل الجولة.');
+          playTone(400, 0.12);
+          checkWinOrAdvance();
+        }
+        onClick('btn-draw-card', doDrawCard);
+        onClick('btn-draw-btn', doDrawCard);
+
+        onClick('btn-call-vote', function () {
+          if (!gameState.active) return;
+          openTargetSelector(gameState.viewerIndex, -1, 'vote');
+        });
+
+        onClick('btn-narrate-aures-file', function () {
+          speakNarrator('ملف Aures Bullet: في شتاء جبال الأوراس، تسلل عميل مزدوج إلى الخلية السرية، وعليكم كشفه وحماية وثائق الثورة.');
+        });
+
+        // Secret Code Verification (1/1/1-11-1954)
+        onClick('btn-verify-secret-code', function () {
+          var val = (document.getElementById('secret-code-input').value || '').trim();
+          if (val === '1/1/1-11-1954') {
+            closeModal('modal-secret-code');
+            document.getElementById('secret-code-input').value = '';
+            initChess();
+            initDominoRound();
+            showScreen('screen-secret-games');
+            speakNarrator('تم فتح قائمة الألعاب السرية المؤرخة بالثورة الجزائرية.');
+          } else {
+            document.getElementById('secret-code-msg').textContent = '❌ الكود غير صحيح! تأكد من الصيغة الدقيقة: 1/1/1-11-1954';
+          }
+        });
+
+        // Secret Games Tabs
+        onClick('btn-tab-chess', function () {
+          document.getElementById('panel-chess').style.display = 'block';
+          document.getElementById('panel-domino').style.display = 'none';
+          document.getElementById('panel-football').style.display = 'none';
+        });
+        onClick('btn-tab-domino', function () {
+          document.getElementById('panel-chess').style.display = 'none';
+          document.getElementById('panel-domino').style.display = 'block';
+          document.getElementById('panel-football').style.display = 'none';
+        });
+        onClick('btn-tab-football', function () {
+          document.getElementById('panel-chess').style.display = 'none';
+          document.getElementById('panel-domino').style.display = 'none';
+          document.getElementById('panel-football').style.display = 'block';
+        });
+
+        // Chess Controls
+        onClick('btn-chess-reset', initChess);
+        onClick('btn-chess-mode', function (ev, btn) {
+          chessState.vsBot = !chessState.vsBot;
+          btn.textContent = chessState.vsBot ? '🤖 ضد الحاسوب: مفعل' : '👥 لاعبان محلياً';
+        });
+
+        // Domino Controls
+        onClick('btn-domino-reset', initDominoRound);
+        onClick('btn-domino-draw', function () {
+          if (dominoState.over || dominoState.turn !== 'player') return;
+          if (dominoState.boneyard.length > 0) {
+            dominoState.playerHand.push(dominoState.boneyard.pop());
+            renderDomino();
+          } else {
+            dominoState.turn = 'ai';
+            document.getElementById('domino-status').textContent = 'الكومة فارغة، انتقل الدور للخصم.';
+            renderDomino();
+            setTimeout(runDominoAi, 500);
+          }
+        });
+
+        // Football Strictly 3 Menus Only
+        onClick('btn-fb-menu-play', function () { showFootballMenu('play'); });
+        onClick('btn-fb-menu-settings', function () { showFootballMenu('settings'); });
+        onClick('btn-fb-menu-teams', function () { showFootballMenu('teams'); });
+
+        onClick('btn-fb-start-match', startFootballMatch);
+        onClick('btn-fb-up', function () { moveFbPlayer(0, -18); drawFootballField(); });
+        onClick('btn-fb-down', function () { moveFbPlayer(0, 18); drawFootballField(); });
+        onClick('btn-fb-left', function () { moveFbPlayer(-18, 0); drawFootballField(); });
+        onClick('btn-fb-right', function () { moveFbPlayer(18, 0); drawFootballField(); });
+        onClick('btn-fb-pass', function () { kickFbBall(5.5, (fbState.mate.y - fbState.player.y) * 0.12); });
+        onClick('btn-fb-shoot', function () { kickFbBall(10.5, (160 - fbState.player.y) * 0.08); });
+
+        // Keyboard controls for football
+        document.addEventListener('keydown', function (e) {
+          var sg = document.getElementById('screen-secret-games');
+          var pf = document.getElementById('panel-football');
+          if (!sg || !sg.classList.contains('active') || !pf || pf.style.display === 'none') return;
+          if (e.key === 'ArrowUp' || e.key === 'w') moveFbPlayer(0, -14);
+          if (e.key === 'ArrowDown' || e.key === 's') moveFbPlayer(0, 14);
+          if (e.key === 'ArrowLeft' || e.key === 'a') moveFbPlayer(-14, 0);
+          if (e.key === 'ArrowRight' || e.key === 'd') moveFbPlayer(14, 0);
+          if (e.key === ' ') kickFbBall(10.5, 0);
+          drawFootballField();
+        });
+
+        // Check URL ?room= parameter
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var roomParam = params.get('room');
+          if (roomParam) {
+            document.getElementById('multi-join-code').value = roomParam;
+            showScreen('screen-setup-multi');
+          }
+        } catch (_) {}
+      });
+    })();
+  </script>
+</body>
+</html>
+```

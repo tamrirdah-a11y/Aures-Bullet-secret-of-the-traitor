@@ -9,4 +9,4 @@
   <meta property="og:title" content="Aures Bullet: Secret of the Traitor and the Colonizer" />
   <meta property="og:description" content="لعبة استنتاج اجتماعي بالبطاقات لـ 4 إلى 15 لاعباً مستوحاة من الثورة الجزائرية (1954–1962) — تامر Tteam © 2026." />
   <meta property="og:type" content="website" />
-</head>
+</head<meta name="google-site-verification" content="yfGaJdTU3Mo9iENrtoDyZJk6QfsO>
